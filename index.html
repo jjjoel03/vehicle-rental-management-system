@@ -1,0 +1,1958 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Vehicle Rental Management System - Manage customers, vehicles, rentals and payments."
+    >
+
+    <meta name="author" content="Vehicle Rental Management System">
+
+    <title>Vehicle Rental Management System</title>
+
+    <!-- Google Font -->
+    <link
+        rel="preconnect"
+        href="https://fonts.googleapis.com"
+    >
+
+    <link
+        rel="preconnect"
+        href="https://fonts.gstatic.com"
+        crossorigin
+    >
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        rel="stylesheet"
+    >
+
+    <!-- Main Stylesheet -->
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+    <!-- =========================================================
+         APPLICATION WRAPPER
+         ========================================================= -->
+
+    <div class="app-container">
+
+
+        <!-- =====================================================
+             SIDEBAR
+             ===================================================== -->
+
+        <aside class="sidebar" id="sidebar">
+
+            <!-- Logo -->
+            <div class="sidebar-header">
+
+                <div class="logo">
+                    <span class="logo-icon">VR</span>
+
+                    <div class="logo-text">
+                        <h2>VehicleRent</h2>
+                        <span>Management System</span>
+                    </div>
+                </div>
+
+                <!-- Mobile Sidebar Close -->
+                <button
+                    class="sidebar-close"
+                    id="sidebarClose"
+                    type="button"
+                    aria-label="Close navigation"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav" aria-label="Main navigation">
+
+                <p class="nav-heading">MAIN MENU</p>
+
+                <button
+                    class="nav-item active"
+                    data-section="dashboard"
+                    type="button"
+                >
+                    <span class="nav-icon">⌂</span>
+                    <span>Dashboard</span>
+                </button>
+
+
+                <button
+                    class="nav-item"
+                    data-section="customers"
+                    type="button"
+                >
+                    <span class="nav-icon">♙</span>
+                    <span>Customers</span>
+                </button>
+
+
+                <button
+                    class="nav-item"
+                    data-section="vehicles"
+                    type="button"
+                >
+                    <span class="nav-icon">▣</span>
+                    <span>Vehicles</span>
+                </button>
+
+
+                <p class="nav-heading">RENTAL MANAGEMENT</p>
+
+
+                <button
+                    class="nav-item"
+                    data-section="rentals"
+                    type="button"
+                >
+                    <span class="nav-icon">▤</span>
+                    <span>Rentals</span>
+                </button>
+
+
+                <button
+                    class="nav-item"
+                    data-section="payments"
+                    type="button"
+                >
+                    <span class="nav-icon">◈</span>
+                    <span>Payments</span>
+                </button>
+
+
+                <button
+                    class="nav-item"
+                    data-section="transactions"
+                    type="button"
+                >
+                    <span class="nav-icon">⇄</span>
+                    <span>Transactions</span>
+                </button>
+
+            </nav>
+
+
+            <!-- Sidebar Footer -->
+            <div class="sidebar-footer">
+
+                <div class="system-status">
+                    <span class="status-dot"></span>
+
+                    <div>
+                        <strong>System Online</strong>
+                        <small>Database connected</small>
+                    </div>
+                </div>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =====================================================
+             MAIN CONTENT
+             ===================================================== -->
+
+        <div class="main-wrapper">
+
+
+            <!-- =================================================
+                 TOP HEADER
+                 ================================================= -->
+
+            <header class="top-header">
+
+                <div class="header-left">
+
+                    <!-- Mobile Menu -->
+                    <button
+                        class="menu-toggle"
+                        id="menuToggle"
+                        type="button"
+                        aria-label="Open navigation"
+                    >
+                        ☰
+                    </button>
+
+
+                    <div class="page-heading">
+
+                        <span class="breadcrumb">
+                            Vehicle Rental
+                        </span>
+
+                        <h1 id="pageTitle">
+                            Dashboard
+                        </h1>
+
+                    </div>
+
+                </div>
+
+
+                <div class="header-right">
+
+                    <!-- Notification -->
+                    <button
+                        class="header-button"
+                        type="button"
+                        aria-label="Notifications"
+                        title="Notifications"
+                    >
+                        ♢
+                        <span class="notification-dot"></span>
+                    </button>
+
+
+                    <!-- User Profile -->
+                    <div class="user-profile">
+
+                        <div class="avatar">
+                            A
+                        </div>
+
+                        <div class="user-info">
+
+                            <strong>Administrator</strong>
+
+                            <span>System Admin</span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </header>
+
+
+
+            <!-- =================================================
+                 CONTENT AREA
+                 ================================================= -->
+
+            <main class="content-area">
+
+
+                <!-- =================================================
+                     DASHBOARD SECTION
+                     ================================================= -->
+
+                <section
+                    id="dashboard"
+                    class="content-section active-section"
+                >
+
+                    <div class="section-intro">
+
+                        <div>
+
+                            <h2>Dashboard Overview</h2>
+
+                            <p>
+                                Monitor your vehicle rental operations
+                                from one place.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            data-section="rentals"
+                            type="button"
+                        >
+                            + New Rental
+                        </button>
+
+                    </div>
+
+
+                    <!-- Statistics -->
+
+                    <div class="stats-grid">
+
+
+                        <!-- Customers -->
+                        <article class="stat-card">
+
+                            <div class="stat-card-top">
+
+                                <div class="stat-icon customers-icon">
+                                    ♙
+                                </div>
+
+                                <span class="stat-label">
+                                    CUSTOMERS
+                                </span>
+
+                            </div>
+
+                            <div class="stat-value">
+                                0
+                            </div>
+
+                            <span class="stat-description">
+                                Registered customers
+                            </span>
+
+                        </article>
+
+
+                        <!-- Vehicles -->
+                        <article class="stat-card">
+
+                            <div class="stat-card-top">
+
+                                <div class="stat-icon vehicles-icon">
+                                    ▣
+                                </div>
+
+                                <span class="stat-label">
+                                    VEHICLES
+                                </span>
+
+                            </div>
+
+                            <div class="stat-value">
+                                0
+                            </div>
+
+                            <span class="stat-description">
+                                Vehicles in system
+                            </span>
+
+                        </article>
+
+
+                        <!-- Active Rentals -->
+                        <article class="stat-card">
+
+                            <div class="stat-card-top">
+
+                                <div class="stat-icon rentals-icon">
+                                    ▤
+                                </div>
+
+                                <span class="stat-label">
+                                    ACTIVE RENTALS
+                                </span>
+
+                            </div>
+
+                            <div class="stat-value">
+                                0
+                            </div>
+
+                            <span class="stat-description">
+                                Currently rented
+                            </span>
+
+                        </article>
+
+
+                        <!-- Revenue -->
+                        <article class="stat-card">
+
+                            <div class="stat-card-top">
+
+                                <div class="stat-icon payments-icon">
+                                    ₹
+                                </div>
+
+                                <span class="stat-label">
+                                    REVENUE
+                                </span>
+
+                            </div>
+
+                            <div class="stat-value">
+                                ₹0.00
+                            </div>
+
+                            <span class="stat-description">
+                                Total payments
+                            </span>
+
+                        </article>
+
+                    </div>
+
+
+
+                    <!-- Dashboard Grid -->
+
+                    <div class="dashboard-grid">
+
+
+                        <!-- Recent Rentals -->
+
+                        <article class="panel large-panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <h3>Recent Rentals</h3>
+
+                                    <p>
+                                        Latest rental activity
+                                    </p>
+
+                                </div>
+
+                                <button
+                                    class="text-button"
+                                    data-section="rentals"
+                                    type="button"
+                                >
+                                    View All →
+                                </button>
+
+                            </div>
+
+
+                            <div class="table-container">
+
+                                <table>
+
+                                    <thead>
+
+                                        <tr>
+                                            <th>Rental ID</th>
+                                            <th>Customer</th>
+                                            <th>Vehicle</th>
+                                            <th>Rental Date</th>
+                                            <th>Status</th>
+                                        </tr>
+
+                                    </thead>
+
+
+                                    <tbody>
+
+                                        <tr>
+
+                                            <td>#R-001</td>
+
+                                            <td>—</td>
+
+                                            <td>—</td>
+
+                                            <td>—</td>
+
+                                            <td>
+                                                <span class="badge badge-neutral">
+                                                    No Data
+                                                </span>
+                                            </td>
+
+                                        </tr>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </article>
+
+
+                        <!-- Vehicle Availability -->
+
+                        <article class="panel">
+
+                            <div class="panel-header">
+
+                                <div>
+
+                                    <h3>Vehicle Availability</h3>
+
+                                    <p>
+                                        Current fleet status
+                                    </p>
+
+                                </div>
+
+                                <button
+                                    class="text-button"
+                                    data-section="vehicles"
+                                    type="button"
+                                >
+                                    Manage →
+                                </button>
+
+                            </div>
+
+
+                            <div class="availability-list">
+
+                                <div class="availability-item">
+
+                                    <div>
+                                        <strong>Available</strong>
+                                        <span>Ready for rental</span>
+                                    </div>
+
+                                    <strong>0</strong>
+
+                                </div>
+
+
+                                <div class="availability-item">
+
+                                    <div>
+                                        <strong>Rented</strong>
+                                        <span>Currently in use</span>
+                                    </div>
+
+                                    <strong>0</strong>
+
+                                </div>
+
+
+                                <div class="availability-item">
+
+                                    <div>
+                                        <strong>Maintenance</strong>
+                                        <span>Unavailable</span>
+                                    </div>
+
+                                    <strong>0</strong>
+
+                                </div>
+
+                            </div>
+
+                        </article>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =================================================
+                     CUSTOMERS SECTION
+                     ================================================= -->
+
+                <section
+                    id="customers"
+                    class="content-section"
+                >
+
+                    <div class="section-intro">
+
+                        <div>
+
+                            <h2>Customers</h2>
+
+                            <p>
+                                Manage customer information and
+                                driving license details.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addCustomerBtn"
+                            type="button"
+                        >
+                            + Add Customer
+                        </button>
+
+                    </div>
+
+
+                    <!-- Search -->
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+
+                            <span>⌕</span>
+
+                            <input
+                                type="search"
+                                id="customerSearch"
+                                placeholder="Search customers..."
+                                aria-label="Search customers"
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Customers Table -->
+
+                    <div class="panel">
+
+                        <div class="table-container">
+
+                            <table id="customersTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>Customer ID</th>
+                                        <th>Name</th>
+                                        <th>Phone</th>
+                                        <th>Email</th>
+                                        <th>Address</th>
+                                        <th>License Number</th>
+                                        <th>Actions</th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody id="customersTableBody">
+
+                                    <tr class="empty-row">
+
+                                        <td colspan="7">
+
+                                            <div class="empty-state">
+
+                                                <div class="empty-icon">
+                                                    ♙
+                                                </div>
+
+                                                <h3>No customers found</h3>
+
+                                                <p>
+                                                    Add your first customer
+                                                    to get started.
+                                                </p>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =================================================
+                     VEHICLES SECTION
+                     ================================================= -->
+
+                <section
+                    id="vehicles"
+                    class="content-section"
+                >
+
+                    <div class="section-intro">
+
+                        <div>
+
+                            <h2>Vehicles</h2>
+
+                            <p>
+                                Manage your vehicle fleet,
+                                rental rates and availability.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addVehicleBtn"
+                            type="button"
+                        >
+                            + Add Vehicle
+                        </button>
+
+                    </div>
+
+
+                    <!-- Vehicle Filters -->
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+
+                            <span>⌕</span>
+
+                            <input
+                                type="search"
+                                id="vehicleSearch"
+                                placeholder="Search vehicles..."
+                                aria-label="Search vehicles"
+                            >
+
+                        </div>
+
+
+                        <select
+                            id="vehicleStatusFilter"
+                            aria-label="Filter vehicle status"
+                        >
+
+                            <option value="all">
+                                All Status
+                            </option>
+
+                            <option value="available">
+                                Available
+                            </option>
+
+                            <option value="rented">
+                                Rented
+                            </option>
+
+                            <option value="maintenance">
+                                Maintenance
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Vehicles Table -->
+
+                    <div class="panel">
+
+                        <div class="table-container">
+
+                            <table id="vehiclesTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>Vehicle ID</th>
+                                        <th>Type</th>
+                                        <th>Model</th>
+                                        <th>Rate / Day</th>
+                                        <th>Availability</th>
+                                        <th>Actions</th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody id="vehiclesTableBody">
+
+                                    <tr class="empty-row">
+
+                                        <td colspan="6">
+
+                                            <div class="empty-state">
+
+                                                <div class="empty-icon">
+                                                    ▣
+                                                </div>
+
+                                                <h3>No vehicles found</h3>
+
+                                                <p>
+                                                    Add a vehicle to your fleet
+                                                    to get started.
+                                                </p>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =================================================
+                     RENTALS SECTION
+                     ================================================= -->
+
+                <section
+                    id="rentals"
+                    class="content-section"
+                >
+
+                    <div class="section-intro">
+
+                        <div>
+
+                            <h2>Rentals</h2>
+
+                            <p>
+                                Create and manage vehicle rental records.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="newRentalBtn"
+                            type="button"
+                        >
+                            + New Rental
+                        </button>
+
+                    </div>
+
+
+                    <!-- Rental Filters -->
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+
+                            <span>⌕</span>
+
+                            <input
+                                type="search"
+                                id="rentalSearch"
+                                placeholder="Search rentals..."
+                                aria-label="Search rentals"
+                            >
+
+                        </div>
+
+
+                        <select
+                            id="rentalStatusFilter"
+                            aria-label="Filter rental status"
+                        >
+
+                            <option value="all">
+                                All Status
+                            </option>
+
+                            <option value="active">
+                                Active
+                            </option>
+
+                            <option value="completed">
+                                Completed
+                            </option>
+
+                            <option value="cancelled">
+                                Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Rentals Table -->
+
+                    <div class="panel">
+
+                        <div class="table-container">
+
+                            <table id="rentalsTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>Rental ID</th>
+                                        <th>Customer ID</th>
+                                        <th>Vehicle ID</th>
+                                        <th>Rental Date</th>
+                                        <th>Expected Return</th>
+                                        <th>Actual Return</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody id="rentalsTableBody">
+
+                                    <tr class="empty-row">
+
+                                        <td colspan="8">
+
+                                            <div class="empty-state">
+
+                                                <div class="empty-icon">
+                                                    ▤
+                                                </div>
+
+                                                <h3>No rentals found</h3>
+
+                                                <p>
+                                                    Create a rental to see
+                                                    it listed here.
+                                                </p>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =================================================
+                     PAYMENTS SECTION
+                     ================================================= -->
+
+                <section
+                    id="payments"
+                    class="content-section"
+                >
+
+                    <div class="section-intro">
+
+                        <div>
+
+                            <h2>Payments</h2>
+
+                            <p>
+                                Track rental payments and payment status.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addPaymentBtn"
+                            type="button"
+                        >
+                            + Record Payment
+                        </button>
+
+                    </div>
+
+
+                    <!-- Payment Summary -->
+
+                    <div class="mini-stats-grid">
+
+                        <div class="mini-stat">
+
+                            <span>Total Payments</span>
+
+                            <strong>₹0.00</strong>
+
+                        </div>
+
+
+                        <div class="mini-stat">
+
+                            <span>Successful</span>
+
+                            <strong>0</strong>
+
+                        </div>
+
+
+                        <div class="mini-stat">
+
+                            <span>Pending</span>
+
+                            <strong>0</strong>
+
+                        </div>
+
+
+                        <div class="mini-stat">
+
+                            <span>Failed</span>
+
+                            <strong>0</strong>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Payments Table -->
+
+                    <div class="panel">
+
+                        <div class="table-container">
+
+                            <table id="paymentsTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>Payment ID</th>
+                                        <th>Rental ID</th>
+                                        <th>Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Payment Method</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody id="paymentsTableBody">
+
+                                    <tr class="empty-row">
+
+                                        <td colspan="7">
+
+                                            <div class="empty-state">
+
+                                                <div class="empty-icon">
+                                                    ₹
+                                                </div>
+
+                                                <h3>No payments found</h3>
+
+                                                <p>
+                                                    Recorded payments will
+                                                    appear here.
+                                                </p>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+                <!-- =================================================
+                     TRANSACTIONS SECTION
+                     ================================================= -->
+
+                <section
+                    id="transactions"
+                    class="content-section"
+                >
+
+                    <div class="section-intro">
+
+                        <div>
+
+                            <h2>Payment Transactions</h2>
+
+                            <p>
+                                View individual payment transaction records.
+                            </p>
+
+                        </div>
+
+                    </div>
+
+
+                    <!-- Transaction Filters -->
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+
+                            <span>⌕</span>
+
+                            <input
+                                type="search"
+                                id="transactionSearch"
+                                placeholder="Search transactions..."
+                                aria-label="Search transactions"
+                            >
+
+                        </div>
+
+
+                        <select
+                            id="transactionStatusFilter"
+                            aria-label="Filter transaction status"
+                        >
+
+                            <option value="all">
+                                All Status
+                            </option>
+
+                            <option value="success">
+                                Success
+                            </option>
+
+                            <option value="pending">
+                                Pending
+                            </option>
+
+                            <option value="failed">
+                                Failed
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- Transactions Table -->
+
+                    <div class="panel">
+
+                        <div class="table-container">
+
+                            <table id="transactionsTable">
+
+                                <thead>
+
+                                    <tr>
+
+                                        <th>Transaction ID</th>
+                                        <th>Payment ID</th>
+                                        <th>Transaction Date</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+
+                                    </tr>
+
+                                </thead>
+
+
+                                <tbody id="transactionsTableBody">
+
+                                    <tr class="empty-row">
+
+                                        <td colspan="6">
+
+                                            <div class="empty-state">
+
+                                                <div class="empty-icon">
+                                                    ⇄
+                                                </div>
+
+                                                <h3>No transactions found</h3>
+
+                                                <p>
+                                                    Payment transactions will
+                                                    appear here.
+                                                </p>
+
+                                            </div>
+
+                                        </td>
+
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+
+            </main>
+
+
+            <!-- =====================================================
+                 FOOTER
+                 ===================================================== -->
+
+            <footer class="main-footer">
+
+                <span>
+                    © 2026 Vehicle Rental Management System
+                </span>
+
+                <span>
+                    Version 1.0
+                </span>
+
+            </footer>
+
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         CUSTOMER MODAL
+         ========================================================= -->
+
+    <div
+        class="modal-overlay"
+        id="customerModal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customerModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2 id="customerModalTitle">
+                        Add Customer
+                    </h2>
+
+                    <p>
+                        Enter the customer's information.
+                    </p>
+
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="customerModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="customerForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="customerName">
+                            Full Name
+                        </label>
+
+                        <input
+                            type="text"
+                            id="customerName"
+                            name="name"
+                            placeholder="Enter full name"
+                            maxlength="100"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="customerPhone">
+                            Phone Number
+                        </label>
+
+                        <input
+                            type="tel"
+                            id="customerPhone"
+                            name="phone"
+                            placeholder="Enter phone number"
+                            maxlength="15"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="customerEmail">
+                            Email
+                        </label>
+
+                        <input
+                            type="email"
+                            id="customerEmail"
+                            name="email"
+                            placeholder="Enter email address"
+                            maxlength="100"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="licenseNumber">
+                            License Number
+                        </label>
+
+                        <input
+                            type="text"
+                            id="licenseNumber"
+                            name="license_number"
+                            placeholder="Enter license number"
+                            maxlength="30"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full-width">
+
+                        <label for="customerAddress">
+                            Address
+                        </label>
+
+                        <textarea
+                            id="customerAddress"
+                            name="address"
+                            placeholder="Enter customer address"
+                            maxlength="200"
+                            rows="3"
+                            required
+                        ></textarea>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="customerModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Save Customer
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         VEHICLE MODAL
+         ========================================================= -->
+
+    <div
+        class="modal-overlay"
+        id="vehicleModal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vehicleModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2 id="vehicleModalTitle">
+                        Add Vehicle
+                    </h2>
+
+                    <p>
+                        Enter the vehicle information.
+                    </p>
+
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="vehicleModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="vehicleForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="vehicleType">
+                            Vehicle Type
+                        </label>
+
+                        <input
+                            type="text"
+                            id="vehicleType"
+                            name="vehicle_type"
+                            placeholder="e.g. SUV, Sedan, Hatchback"
+                            maxlength="30"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="vehicleModel">
+                            Model
+                        </label>
+
+                        <input
+                            type="text"
+                            id="vehicleModel"
+                            name="model"
+                            placeholder="Enter vehicle model"
+                            maxlength="50"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="ratePerDay">
+                            Rate Per Day (₹)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="ratePerDay"
+                            name="rate_per_day"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="availabilityStatus">
+                            Availability Status
+                        </label>
+
+                        <select
+                            id="availabilityStatus"
+                            name="availability_status"
+                            required
+                        >
+
+                            <option value="">
+                                Select status
+                            </option>
+
+                            <option value="available">
+                                Available
+                            </option>
+
+                            <option value="rented">
+                                Rented
+                            </option>
+
+                            <option value="maintenance">
+                                Maintenance
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="vehicleModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Save Vehicle
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         RENTAL MODAL
+         ========================================================= -->
+
+    <div
+        class="modal-overlay"
+        id="rentalModal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rentalModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2 id="rentalModalTitle">
+                        Create New Rental
+                    </h2>
+
+                    <p>
+                        Create a rental record for a customer.
+                    </p>
+
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="rentalModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="rentalForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="rentalCustomer">
+                            Customer
+                        </label>
+
+                        <select
+                            id="rentalCustomer"
+                            name="customer_id"
+                            required
+                        >
+
+                            <option value="">
+                                Select customer
+                            </option>
+
+                            <!--
+                                Customer options will be populated
+                                dynamically using JavaScript.
+                            -->
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="rentalVehicle">
+                            Vehicle
+                        </label>
+
+                        <select
+                            id="rentalVehicle"
+                            name="vehicle_id"
+                            required
+                        >
+
+                            <option value="">
+                                Select available vehicle
+                            </option>
+
+                            <!--
+                                Vehicle options will be populated
+                                dynamically using JavaScript.
+                            -->
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="rentalDate">
+                            Rental Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="rentalDate"
+                            name="rental_date"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="expectedReturnDate">
+                            Expected Return Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="expectedReturnDate"
+                            name="expected_return_date"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full-width">
+
+                        <label for="rentalStatus">
+                            Rental Status
+                        </label>
+
+                        <select
+                            id="rentalStatus"
+                            name="status"
+                            required
+                        >
+
+                            <option value="active">
+                                Active
+                            </option>
+
+                            <option value="completed">
+                                Completed
+                            </option>
+
+                            <option value="cancelled">
+                                Cancelled
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="rentalModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Create Rental
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         PAYMENT MODAL
+         ========================================================= -->
+
+    <div
+        class="modal-overlay"
+        id="paymentModal"
+        aria-hidden="true"
+    >
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="paymentModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+
+                    <h2 id="paymentModalTitle">
+                        Record Payment
+                    </h2>
+
+                    <p>
+                        Add a payment against a rental.
+                    </p>
+
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="paymentModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="paymentForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="paymentRental">
+                            Rental
+                        </label>
+
+                        <select
+                            id="paymentRental"
+                            name="rental_id"
+                            required
+                        >
+
+                            <option value="">
+                                Select rental
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="paymentAmount">
+                            Amount (₹)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="paymentAmount"
+                            name="amount"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="paymentDate">
+                            Payment Date
+                        </label>
+
+                        <input
+                            type="date"
+                            id="paymentDate"
+                            name="payment_date"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="paymentMethod">
+                            Payment Method
+                        </label>
+
+                        <select
+                            id="paymentMethod"
+                            name="payment_method"
+                            required
+                        >
+
+                            <option value="">
+                                Select method
+                            </option>
+
+                            <option value="cash">
+                                Cash
+                            </option>
+
+                            <option value="card">
+                                Card
+                            </option>
+
+                            <option value="upi">
+                                UPI
+                            </option>
+
+                            <option value="net_banking">
+                                Net Banking
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group full-width">
+
+                        <label for="paymentStatus">
+                            Payment Status
+                        </label>
+
+                        <select
+                            id="paymentStatus"
+                            name="status"
+                            required
+                        >
+
+                            <option value="success">
+                                Success
+                            </option>
+
+                            <option value="pending">
+                                Pending
+                            </option>
+
+                            <option value="failed">
+                                Failed
+                            </option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="paymentModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Record Payment
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+
+    <!-- =========================================================
+         JAVASCRIPT
+         ========================================================= -->
+
+    <script src="js/script.js"></script>
+
+</body>
+
+</html>
