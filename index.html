@@ -13,7 +13,7 @@
 
     <meta name="author" content="Vehicle Rental Management System">
 
-    <title>Vehicle Rental Management System</title>
+    <title>DrivePrime — Vehicle Rental Management System</title>
 
     <!-- Google Font -->
     <link
@@ -28,9 +28,11 @@
     >
 
     <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
         rel="stylesheet"
     >
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
 
     <!-- Main Stylesheet -->
     <link rel="stylesheet" href="css/style.css">
@@ -57,11 +59,10 @@
             <div class="sidebar-header">
 
                 <div class="logo">
-                    <span class="logo-icon">VR</span>
-
+                    <div class="logo-mark"><i class="fa-solid fa-car-side"></i></div>
                     <div class="logo-text">
-                        <h2>VehicleRent</h2>
-                        <span>Management System</span>
+                        <h2>DrivePrime</h2>
+                        <span>Vehicle Rental System</span>
                     </div>
                 </div>
 
@@ -88,7 +89,7 @@
                     data-section="dashboard"
                     type="button"
                 >
-                    <span class="nav-icon">⌂</span>
+                    <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
                     <span>Dashboard</span>
                 </button>
 
@@ -98,7 +99,7 @@
                     data-section="customers"
                     type="button"
                 >
-                    <span class="nav-icon">♙</span>
+                    <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
                     <span>Customers</span>
                 </button>
 
@@ -108,7 +109,7 @@
                     data-section="vehicles"
                     type="button"
                 >
-                    <span class="nav-icon">▣</span>
+                    <span class="nav-icon"><i class="fa-solid fa-car"></i></span>
                     <span>Vehicles</span>
                 </button>
 
@@ -121,7 +122,7 @@
                     data-section="rentals"
                     type="button"
                 >
-                    <span class="nav-icon">▤</span>
+                    <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span>
                     <span>Rentals</span>
                 </button>
 
@@ -131,7 +132,7 @@
                     data-section="payments"
                     type="button"
                 >
-                    <span class="nav-icon">◈</span>
+                    <span class="nav-icon"><i class="fa-solid fa-credit-card"></i></span>
                     <span>Payments</span>
                 </button>
 
@@ -141,7 +142,7 @@
                     data-section="transactions"
                     type="button"
                 >
-                    <span class="nav-icon">⇄</span>
+                    <span class="nav-icon"><i class="fa-solid fa-arrow-right-arrow-left"></i></span>
                     <span>Transactions</span>
                 </button>
 
@@ -177,68 +178,28 @@
                  ================================================= -->
 
             <header class="top-header">
-
                 <div class="header-left">
-
-                    <!-- Mobile Menu -->
-                    <button
-                        class="menu-toggle"
-                        id="menuToggle"
-                        type="button"
-                        aria-label="Open navigation"
-                    >
-                        ☰
-                    </button>
-
-
+                    <button class="menu-toggle" id="menuToggle" type="button" aria-label="Open navigation"><i class="fa-solid fa-bars"></i></button>
                     <div class="page-heading">
-
-                        <span class="breadcrumb">
-                            Vehicle Rental
-                        </span>
-
-                        <h1 id="pageTitle">
-                            Dashboard
-                        </h1>
-
+                        <span class="breadcrumb">DrivePrime / Operations</span>
+                        <h1 id="pageTitle">Dashboard</h1>
                     </div>
-
                 </div>
-
-
                 <div class="header-right">
-
-                    <!-- Notification -->
-                    <button
-                        class="header-button"
-                        type="button"
-                        aria-label="Notifications"
-                        title="Notifications"
-                    >
-                        ♢
-                        <span class="notification-dot"></span>
+                    <label class="global-search" aria-label="Global search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input id="globalSearch" type="search" placeholder="Search anything..." autocomplete="off">
+                    </label>
+                    <div class="header-date"><i class="fa-regular fa-calendar"></i><span id="currentDate">—</span></div>
+                    <button class="header-button" id="notificationButton" type="button" aria-label="Notifications" title="Notifications">
+                        <i class="fa-regular fa-bell"></i><span class="notification-dot"></span>
                     </button>
-
-
-                    <!-- User Profile -->
                     <div class="user-profile">
-
-                        <div class="avatar">
-                            A
-                        </div>
-
-                        <div class="user-info">
-
-                            <strong>Administrator</strong>
-
-                            <span>System Admin</span>
-
-                        </div>
-
+                        <div class="avatar">AD</div>
+                        <div class="user-info"><strong>Admin</strong><span>Administrator</span></div>
+                        <i class="fa-solid fa-chevron-down profile-chevron"></i>
                     </div>
-
                 </div>
-
             </header>
 
 
@@ -254,297 +215,72 @@
                      DASHBOARD SECTION
                      ================================================= -->
 
-                <section
-                    id="dashboard"
-                    class="content-section active-section"
-                >
-
-                    <div class="section-intro">
-
+                <section id="dashboard" class="content-section active-section">
+                    <div class="dashboard-hero">
                         <div>
-
-                            <h2>Dashboard Overview</h2>
-
-                            <p>
-                                Monitor your vehicle rental operations
-                                from one place.
-                            </p>
-
+                            <span class="eyebrow">WELCOME BACK</span>
+                            <h2>Good Morning, Admin</h2>
+                            <p>Here’s what’s happening with your vehicle rental system today.</p>
                         </div>
-
-                        <button
-                            class="btn btn-primary"
-                            data-section="rentals"
-                            type="button"
-                        >
-                            + New Rental
-                        </button>
-
+                        <button class="btn btn-primary" data-section="rentals" type="button"><i class="fa-solid fa-plus"></i> New Rental</button>
                     </div>
-
-
-                    <!-- Statistics -->
 
                     <div class="stats-grid">
-
-
-                        <!-- Customers -->
-                        <article class="stat-card">
-
-                            <div class="stat-card-top">
-
-                                <div class="stat-icon customers-icon">
-                                    ♙
-                                </div>
-
-                                <span class="stat-label">
-                                    CUSTOMERS
-                                </span>
-
-                            </div>
-
-                            <div class="stat-value">
-                                0
-                            </div>
-
-                            <span class="stat-description">
-                                Registered customers
-                            </span>
-
+                        <article class="stat-card stat-blue">
+                            <div class="stat-card-top"><span class="stat-label">Total Vehicles</span><div class="stat-icon"><i class="fa-solid fa-car"></i></div></div>
+                            <div class="stat-value" id="totalVehicles">0</div><div class="stat-change positive"><i class="fa-solid fa-arrow-trend-up"></i> Fleet overview</div><span class="stat-watermark"><i class="fa-solid fa-car-side"></i></span>
                         </article>
-
-
-                        <!-- Vehicles -->
-                        <article class="stat-card">
-
-                            <div class="stat-card-top">
-
-                                <div class="stat-icon vehicles-icon">
-                                    ▣
-                                </div>
-
-                                <span class="stat-label">
-                                    VEHICLES
-                                </span>
-
-                            </div>
-
-                            <div class="stat-value">
-                                0
-                            </div>
-
-                            <span class="stat-description">
-                                Vehicles in system
-                            </span>
-
+                        <article class="stat-card stat-green">
+                            <div class="stat-card-top"><span class="stat-label">Total Customers</span><div class="stat-icon"><i class="fa-solid fa-users"></i></div></div>
+                            <div class="stat-value" id="totalCustomers">0</div><div class="stat-change positive"><i class="fa-solid fa-arrow-trend-up"></i> Registered customers</div><span class="stat-watermark"><i class="fa-solid fa-user-group"></i></span>
                         </article>
-
-
-                        <!-- Active Rentals -->
-                        <article class="stat-card">
-
-                            <div class="stat-card-top">
-
-                                <div class="stat-icon rentals-icon">
-                                    ▤
-                                </div>
-
-                                <span class="stat-label">
-                                    ACTIVE RENTALS
-                                </span>
-
-                            </div>
-
-                            <div class="stat-value">
-                                0
-                            </div>
-
-                            <span class="stat-description">
-                                Currently rented
-                            </span>
-
+                        <article class="stat-card stat-amber">
+                            <div class="stat-card-top"><span class="stat-label">Active Rentals</span><div class="stat-icon"><i class="fa-solid fa-calendar-check"></i></div></div>
+                            <div class="stat-value" id="activeRentals">0</div><div class="stat-change positive"><i class="fa-solid fa-arrow-trend-up"></i> Currently rented</div><span class="stat-watermark"><i class="fa-solid fa-key"></i></span>
                         </article>
-
-
-                        <!-- Revenue -->
-                        <article class="stat-card">
-
-                            <div class="stat-card-top">
-
-                                <div class="stat-icon payments-icon">
-                                    ₹
-                                </div>
-
-                                <span class="stat-label">
-                                    REVENUE
-                                </span>
-
-                            </div>
-
-                            <div class="stat-value">
-                                ₹0.00
-                            </div>
-
-                            <span class="stat-description">
-                                Total payments
-                            </span>
-
+                        <article class="stat-card stat-purple">
+                            <div class="stat-card-top"><span class="stat-label">Total Revenue</span><div class="stat-icon"><i class="fa-solid fa-indian-rupee-sign"></i></div></div>
+                            <div class="stat-value" id="totalRevenue">₹0</div><div class="stat-change positive"><i class="fa-solid fa-arrow-trend-up"></i> Successful payments</div><span class="stat-watermark"><i class="fa-solid fa-chart-column"></i></span>
                         </article>
-
                     </div>
 
+                    <div class="dashboard-main-grid">
+                        <div class="panel recent-panel">
+                            <div class="panel-header"><div><h3>Recent Rentals</h3><p>Your latest rental activity at a glance</p></div><button class="text-button" data-section="rentals">View all <i class="fa-solid fa-arrow-right"></i></button></div>
+                            <div class="table-container"><table id="dashboardRentalsTable"><thead><tr><th>Rental</th><th>Customer</th><th>Vehicle</th><th>Rental Period</th><th>Status</th><th></th></tr></thead><tbody></tbody></table></div>
+                            <div class="empty-state" style="display:none"><div class="empty-state-icon"><i class="fa-regular fa-calendar-xmark"></i></div><h3>No Rentals Yet</h3><p>Create your first rental to get started.</p></div>
+                        </div>
 
-
-                    <!-- Dashboard Grid -->
-
-                    <div class="dashboard-grid">
-
-
-                        <!-- Recent Rentals -->
-
-                        <article class="panel large-panel">
-
-                            <div class="panel-header">
-
-                                <div>
-
-                                    <h3>Recent Rentals</h3>
-
-                                    <p>
-                                        Latest rental activity
-                                    </p>
-
-                                </div>
-
-                                <button
-                                    class="text-button"
-                                    data-section="rentals"
-                                    type="button"
-                                >
-                                    View All →
-                                </button>
-
+                        <div class="availability-panel panel">
+                            <div class="panel-header"><div><h3>Vehicle Availability</h3><p>Live fleet status</p></div><button class="text-button" data-section="vehicles">View all <i class="fa-solid fa-arrow-right"></i></button></div>
+                            <div class="availability-content">
+                                <div class="donut-wrap"><div class="donut" id="availabilityDonut"><div><strong id="availabilityTotal">0</strong><span>Total Vehicles</span></div></div></div>
+                                <div class="availability-legend"><div><span class="legend-dot available"></span><span>Available</span><strong id="legendAvailable">0</strong></div><div><span class="legend-dot rented"></span><span>Rented</span><strong id="legendRented">0</strong></div><div><span class="legend-dot maintenance"></span><span>Maintenance</span><strong id="legendMaintenance">0</strong></div></div>
                             </div>
-
-
-                            <div class="table-container">
-
-                                <table>
-
-                                    <thead>
-
-                                        <tr>
-                                            <th>Rental ID</th>
-                                            <th>Customer</th>
-                                            <th>Vehicle</th>
-                                            <th>Rental Date</th>
-                                            <th>Status</th>
-                                        </tr>
-
-                                    </thead>
-
-
-                                    <tbody>
-
-                                        <tr>
-
-                                            <td>#R-001</td>
-
-                                            <td>—</td>
-
-                                            <td>—</td>
-
-                                            <td>—</td>
-
-                                            <td>
-                                                <span class="badge badge-neutral">
-                                                    No Data
-                                                </span>
-                                            </td>
-
-                                        </tr>
-
-                                    </tbody>
-
-                                </table>
-
-                            </div>
-
-                        </article>
-
-
-                        <!-- Vehicle Availability -->
-
-                        <article class="panel">
-
-                            <div class="panel-header">
-
-                                <div>
-
-                                    <h3>Vehicle Availability</h3>
-
-                                    <p>
-                                        Current fleet status
-                                    </p>
-
-                                </div>
-
-                                <button
-                                    class="text-button"
-                                    data-section="vehicles"
-                                    type="button"
-                                >
-                                    Manage →
-                                </button>
-
-                            </div>
-
-
-                            <div class="availability-list">
-
-                                <div class="availability-item">
-
-                                    <div>
-                                        <strong>Available</strong>
-                                        <span>Ready for rental</span>
-                                    </div>
-
-                                    <strong>0</strong>
-
-                                </div>
-
-
-                                <div class="availability-item">
-
-                                    <div>
-                                        <strong>Rented</strong>
-                                        <span>Currently in use</span>
-                                    </div>
-
-                                    <strong>0</strong>
-
-                                </div>
-
-
-                                <div class="availability-item">
-
-                                    <div>
-                                        <strong>Maintenance</strong>
-                                        <span>Unavailable</span>
-                                    </div>
-
-                                    <strong>0</strong>
-
-                                </div>
-
-                            </div>
-
-                        </article>
-
+                            <div class="fleet-types"><div><span><i class="fa-solid fa-car"></i> Sedan</span><strong id="typeSedan">0</strong></div><div><span><i class="fa-solid fa-car-side"></i> SUV</span><strong id="typeSuv">0</strong></div><div><span><i class="fa-solid fa-car-rear"></i> Hatchback</span><strong id="typeHatchback">0</strong></div><div><span><i class="fa-solid fa-van-shuttle"></i> Van</span><strong id="typeVan">0</strong></div></div>
+                        </div>
                     </div>
 
+                    <div class="dashboard-bottom-grid">
+                        <div class="panel payments-panel">
+                            <div class="panel-header"><div><h3>Recent Payments</h3><p>Latest financial activity</p></div><button class="text-button" data-section="payments">View all <i class="fa-solid fa-arrow-right"></i></button></div>
+                            <div class="table-container"><table id="dashboardPaymentsTable"><thead><tr><th>Rental</th><th>Amount</th><th>Method</th><th>Status</th><th>Date</th></tr></thead><tbody></tbody></table></div>
+                            <div class="empty-state dashboard-payment-empty" style="display:none"><div class="empty-state-icon"><i class="fa-regular fa-credit-card"></i></div><h3>No Payments Yet</h3><p>Payment activity will appear here.</p></div>
+                        </div>
+                        <div class="panel quick-panel">
+                            <div class="panel-header"><div><h3>Quick Actions</h3><p>Common operations</p></div></div>
+                            <div class="quick-actions">
+                                <button class="quick-action qa-blue" id="quickAddCustomer"><span><i class="fa-solid fa-user-plus"></i></span><strong>Add Customer</strong><small>Register a customer</small></button>
+                                <button class="quick-action qa-green" id="quickAddVehicle"><span><i class="fa-solid fa-car"></i></span><strong>Add Vehicle</strong><small>Expand your fleet</small></button>
+                                <button class="quick-action qa-amber" id="quickCreateRental"><span><i class="fa-solid fa-calendar-plus"></i></span><strong>Create Rental</strong><small>Start a new booking</small></button>
+                                <button class="quick-action qa-purple" id="quickRecordPayment"><span><i class="fa-solid fa-credit-card"></i></span><strong>Record Payment</strong><small>Log a transaction</small></button>
+                            </div>
+                        </div>
+                        <div class="promo-card">
+                            <div class="promo-glow"></div><div class="promo-content"><span class="promo-kicker">DRIVE WITH CONFIDENCE</span><h3>Your next adventure<br><em>starts here.</em></h3><p>Premium vehicles. Better journeys. Always.</p><button class="promo-btn" data-section="rentals">Rent now <i class="fa-solid fa-arrow-right"></i></button></div><div class="promo-car"><i class="fa-solid fa-car-side"></i></div>
+                        </div>
+                    </div>
                 </section>
-
 
 
                 <!-- =================================================
@@ -562,10 +298,7 @@
 
                             <h2>Customers</h2>
 
-                            <p>
-                                Manage customer information and
-                                driving license details.
-                            </p>
+                            <p>Manage and track all customers.</p>
 
                         </div>
 
@@ -580,29 +313,30 @@
                     </div>
 
 
-                    <!-- Search -->
+                    <div class="panel">
 
-                    <div class="toolbar">
+                        <div class="panel-header">
 
-                        <div class="search-box">
+                            <div>
 
-                            <span>⌕</span>
+                                <h3>Customer List</h3>
 
-                            <input
-                                type="search"
-                                id="customerSearch"
-                                placeholder="Search customers..."
-                                aria-label="Search customers"
-                            >
+                                <p>All registered customers</p>
+
+                            </div>
 
                         </div>
 
-                    </div>
+                        <div class="toolbar">
 
+                            <input
+                                type="text"
+                                class="search-box"
+                                id="customerSearch"
+                                placeholder="Search by name or email..."
+                            >
 
-                    <!-- Customers Table -->
-
-                    <div class="panel">
+                        </div>
 
                         <div class="table-container">
 
@@ -612,43 +346,21 @@
 
                                     <tr>
 
-                                        <th>Customer ID</th>
                                         <th>Name</th>
-                                        <th>Phone</th>
+
                                         <th>Email</th>
+
+                                        <th>Phone</th>
+
                                         <th>Address</th>
-                                        <th>License Number</th>
+
                                         <th>Actions</th>
 
                                     </tr>
 
                                 </thead>
 
-
-                                <tbody id="customersTableBody">
-
-                                    <tr class="empty-row">
-
-                                        <td colspan="7">
-
-                                            <div class="empty-state">
-
-                                                <div class="empty-icon">
-                                                    ♙
-                                                </div>
-
-                                                <h3>No customers found</h3>
-
-                                                <p>
-                                                    Add your first customer
-                                                    to get started.
-                                                </p>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
+                                <tbody>
 
                                 </tbody>
 
@@ -656,10 +368,19 @@
 
                         </div>
 
+                        <div class="empty-state" style="display: none;">
+
+                            <div class="empty-state-icon">👥</div>
+
+                            <h3>No Customers</h3>
+
+                            <p>Start by adding a new customer.</p>
+
+                        </div>
+
                     </div>
 
                 </section>
-
 
 
                 <!-- =================================================
@@ -677,10 +398,7 @@
 
                             <h2>Vehicles</h2>
 
-                            <p>
-                                Manage your vehicle fleet,
-                                rental rates and availability.
-                            </p>
+                            <p>Manage your vehicle fleet.</p>
 
                         </div>
 
@@ -695,53 +413,42 @@
                     </div>
 
 
-                    <!-- Vehicle Filters -->
+                    <div class="panel">
 
-                    <div class="toolbar">
+                        <div class="panel-header">
 
-                        <div class="search-box">
+                            <div>
 
-                            <span>⌕</span>
+                                <h3>Vehicle Fleet</h3>
 
-                            <input
-                                type="search"
-                                id="vehicleSearch"
-                                placeholder="Search vehicles..."
-                                aria-label="Search vehicles"
-                            >
+                                <p>All vehicles in the system</p>
+
+                            </div>
 
                         </div>
 
+                        <div class="toolbar">
 
-                        <select
-                            id="vehicleStatusFilter"
-                            aria-label="Filter vehicle status"
-                        >
+                            <input
+                                type="text"
+                                class="search-box"
+                                id="vehicleSearch"
+                                placeholder="Search by license plate or model..."
+                            >
 
-                            <option value="all">
-                                All Status
-                            </option>
+                            <select id="vehicleStatusFilter">
 
-                            <option value="available">
-                                Available
-                            </option>
+                                <option value="">All Status</option>
 
-                            <option value="rented">
-                                Rented
-                            </option>
+                                <option value="available">Available</option>
 
-                            <option value="maintenance">
-                                Maintenance
-                            </option>
+                                <option value="rented">Rented</option>
 
-                        </select>
+                                <option value="maintenance">Maintenance</option>
 
-                    </div>
+                            </select>
 
-
-                    <!-- Vehicles Table -->
-
-                    <div class="panel">
+                        </div>
 
                         <div class="table-container">
 
@@ -751,42 +458,25 @@
 
                                     <tr>
 
-                                        <th>Vehicle ID</th>
-                                        <th>Type</th>
+                                        <th>License Plate</th>
+
                                         <th>Model</th>
-                                        <th>Rate / Day</th>
-                                        <th>Availability</th>
+
+                                        <th>Year</th>
+
+                                        <th>Type</th>
+
+                                        <th>Daily Rate</th>
+
+                                        <th>Status</th>
+
                                         <th>Actions</th>
 
                                     </tr>
 
                                 </thead>
 
-
-                                <tbody id="vehiclesTableBody">
-
-                                    <tr class="empty-row">
-
-                                        <td colspan="6">
-
-                                            <div class="empty-state">
-
-                                                <div class="empty-icon">
-                                                    ▣
-                                                </div>
-
-                                                <h3>No vehicles found</h3>
-
-                                                <p>
-                                                    Add a vehicle to your fleet
-                                                    to get started.
-                                                </p>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
+                                <tbody>
 
                                 </tbody>
 
@@ -794,10 +484,19 @@
 
                         </div>
 
+                        <div class="empty-state" style="display: none;">
+
+                            <div class="empty-state-icon">🚗</div>
+
+                            <h3>No Vehicles</h3>
+
+                            <p>Add your first vehicle to the fleet.</p>
+
+                        </div>
+
                     </div>
 
                 </section>
-
 
 
                 <!-- =================================================
@@ -815,70 +514,57 @@
 
                             <h2>Rentals</h2>
 
-                            <p>
-                                Create and manage vehicle rental records.
-                            </p>
+                            <p>Track all rental agreements.</p>
 
                         </div>
 
                         <button
                             class="btn btn-primary"
-                            id="newRentalBtn"
+                            id="addRentalBtn"
                             type="button"
                         >
-                            + New Rental
+                            + Create Rental
                         </button>
 
                     </div>
 
 
-                    <!-- Rental Filters -->
+                    <div class="panel">
 
-                    <div class="toolbar">
+                        <div class="panel-header">
 
-                        <div class="search-box">
+                            <div>
 
-                            <span>⌕</span>
+                                <h3>Rental Records</h3>
 
-                            <input
-                                type="search"
-                                id="rentalSearch"
-                                placeholder="Search rentals..."
-                                aria-label="Search rentals"
-                            >
+                                <p>All active and completed rentals</p>
+
+                            </div>
 
                         </div>
 
+                        <div class="toolbar">
 
-                        <select
-                            id="rentalStatusFilter"
-                            aria-label="Filter rental status"
-                        >
+                            <input
+                                type="text"
+                                class="search-box"
+                                id="rentalSearch"
+                                placeholder="Search by rental ID or customer..."
+                            >
 
-                            <option value="all">
-                                All Status
-                            </option>
+                            <select id="rentalStatusFilter">
 
-                            <option value="active">
-                                Active
-                            </option>
+                                <option value="">All Status</option>
 
-                            <option value="completed">
-                                Completed
-                            </option>
+                                <option value="active">Active</option>
 
-                            <option value="cancelled">
-                                Cancelled
-                            </option>
+                                <option value="completed">Completed</option>
 
-                        </select>
+                                <option value="cancelled">Cancelled</option>
 
-                    </div>
+                            </select>
 
-
-                    <!-- Rentals Table -->
-
-                    <div class="panel">
+                        </div>
 
                         <div class="table-container">
 
@@ -889,43 +575,24 @@
                                     <tr>
 
                                         <th>Rental ID</th>
-                                        <th>Customer ID</th>
-                                        <th>Vehicle ID</th>
-                                        <th>Rental Date</th>
-                                        <th>Expected Return</th>
-                                        <th>Actual Return</th>
+
+                                        <th>Customer</th>
+
+                                        <th>Vehicle</th>
+
+                                        <th>Start Date</th>
+
+                                        <th>End Date</th>
+
                                         <th>Status</th>
+
                                         <th>Actions</th>
 
                                     </tr>
 
                                 </thead>
 
-
-                                <tbody id="rentalsTableBody">
-
-                                    <tr class="empty-row">
-
-                                        <td colspan="8">
-
-                                            <div class="empty-state">
-
-                                                <div class="empty-icon">
-                                                    ▤
-                                                </div>
-
-                                                <h3>No rentals found</h3>
-
-                                                <p>
-                                                    Create a rental to see
-                                                    it listed here.
-                                                </p>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
+                                <tbody>
 
                                 </tbody>
 
@@ -933,10 +600,19 @@
 
                         </div>
 
+                        <div class="empty-state" style="display: none;">
+
+                            <div class="empty-state-icon">📋</div>
+
+                            <h3>No Rentals</h3>
+
+                            <p>Create your first rental agreement.</p>
+
+                        </div>
+
                     </div>
 
                 </section>
-
 
 
                 <!-- =================================================
@@ -954,9 +630,7 @@
 
                             <h2>Payments</h2>
 
-                            <p>
-                                Track rental payments and payment status.
-                            </p>
+                            <p>Track rental payments.</p>
 
                         </div>
 
@@ -971,51 +645,42 @@
                     </div>
 
 
-                    <!-- Payment Summary -->
-
-                    <div class="mini-stats-grid">
-
-                        <div class="mini-stat">
-
-                            <span>Total Payments</span>
-
-                            <strong>₹0.00</strong>
-
-                        </div>
-
-
-                        <div class="mini-stat">
-
-                            <span>Successful</span>
-
-                            <strong>0</strong>
-
-                        </div>
-
-
-                        <div class="mini-stat">
-
-                            <span>Pending</span>
-
-                            <strong>0</strong>
-
-                        </div>
-
-
-                        <div class="mini-stat">
-
-                            <span>Failed</span>
-
-                            <strong>0</strong>
-
-                        </div>
-
-                    </div>
-
-
-                    <!-- Payments Table -->
-
                     <div class="panel">
+
+                        <div class="panel-header">
+
+                            <div>
+
+                                <h3>Payment Records</h3>
+
+                                <p>All payment transactions</p>
+
+                            </div>
+
+                        </div>
+
+                        <div class="toolbar">
+
+                            <input
+                                type="text"
+                                class="search-box"
+                                id="paymentSearch"
+                                placeholder="Search by rental ID..."
+                            >
+
+                            <select id="paymentStatusFilter">
+
+                                <option value="">All Status</option>
+
+                                <option value="success">Success</option>
+
+                                <option value="pending">Pending</option>
+
+                                <option value="failed">Failed</option>
+
+                            </select>
+
+                        </div>
 
                         <div class="table-container">
 
@@ -1026,42 +691,24 @@
                                     <tr>
 
                                         <th>Payment ID</th>
+
                                         <th>Rental ID</th>
+
                                         <th>Amount</th>
-                                        <th>Payment Date</th>
-                                        <th>Payment Method</th>
+
+                                        <th>Method</th>
+
+                                        <th>Date</th>
+
                                         <th>Status</th>
+
                                         <th>Actions</th>
 
                                     </tr>
 
                                 </thead>
 
-
-                                <tbody id="paymentsTableBody">
-
-                                    <tr class="empty-row">
-
-                                        <td colspan="7">
-
-                                            <div class="empty-state">
-
-                                                <div class="empty-icon">
-                                                    ₹
-                                                </div>
-
-                                                <h3>No payments found</h3>
-
-                                                <p>
-                                                    Recorded payments will
-                                                    appear here.
-                                                </p>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
+                                <tbody>
 
                                 </tbody>
 
@@ -1069,10 +716,19 @@
 
                         </div>
 
+                        <div class="empty-state" style="display: none;">
+
+                            <div class="empty-state-icon">💰</div>
+
+                            <h3>No Payments</h3>
+
+                            <p>No payment records yet.</p>
+
+                        </div>
+
                     </div>
 
                 </section>
-
 
 
                 <!-- =================================================
@@ -1088,64 +744,39 @@
 
                         <div>
 
-                            <h2>Payment Transactions</h2>
+                            <h2>Transactions</h2>
 
-                            <p>
-                                View individual payment transaction records.
-                            </p>
+                            <p>Complete transaction history.</p>
 
                         </div>
 
                     </div>
 
 
-                    <!-- Transaction Filters -->
+                    <div class="panel">
 
-                    <div class="toolbar">
+                        <div class="panel-header">
 
-                        <div class="search-box">
+                            <div>
 
-                            <span>⌕</span>
+                                <h3>All Transactions</h3>
+
+                                <p>System-wide transaction log</p>
+
+                            </div>
+
+                        </div>
+
+                        <div class="toolbar">
 
                             <input
-                                type="search"
+                                type="text"
+                                class="search-box"
                                 id="transactionSearch"
                                 placeholder="Search transactions..."
-                                aria-label="Search transactions"
                             >
 
                         </div>
-
-
-                        <select
-                            id="transactionStatusFilter"
-                            aria-label="Filter transaction status"
-                        >
-
-                            <option value="all">
-                                All Status
-                            </option>
-
-                            <option value="success">
-                                Success
-                            </option>
-
-                            <option value="pending">
-                                Pending
-                            </option>
-
-                            <option value="failed">
-                                Failed
-                            </option>
-
-                        </select>
-
-                    </div>
-
-
-                    <!-- Transactions Table -->
-
-                    <div class="panel">
 
                         <div class="table-container">
 
@@ -1156,41 +787,22 @@
                                     <tr>
 
                                         <th>Transaction ID</th>
-                                        <th>Payment ID</th>
-                                        <th>Transaction Date</th>
+
+                                        <th>Type</th>
+
+                                        <th>Reference</th>
+
+                                        <th>Date</th>
+
                                         <th>Amount</th>
+
                                         <th>Status</th>
-                                        <th>Actions</th>
 
                                     </tr>
 
                                 </thead>
 
-
-                                <tbody id="transactionsTableBody">
-
-                                    <tr class="empty-row">
-
-                                        <td colspan="6">
-
-                                            <div class="empty-state">
-
-                                                <div class="empty-icon">
-                                                    ⇄
-                                                </div>
-
-                                                <h3>No transactions found</h3>
-
-                                                <p>
-                                                    Payment transactions will
-                                                    appear here.
-                                                </p>
-
-                                            </div>
-
-                                        </td>
-
-                                    </tr>
+                                <tbody>
 
                                 </tbody>
 
@@ -1198,36 +810,38 @@
 
                         </div>
 
+                        <div class="empty-state" style="display: none;">
+
+                            <div class="empty-state-icon">📊</div>
+
+                            <h3>No Transactions</h3>
+
+                            <p>Transaction history will appear here.</p>
+
+                        </div>
+
                     </div>
 
                 </section>
 
-
-
             </main>
 
 
-            <!-- =====================================================
+            <!-- =================================================
                  FOOTER
-                 ===================================================== -->
+                 ================================================= -->
 
             <footer class="main-footer">
 
-                <span>
-                    © 2026 Vehicle Rental Management System
-                </span>
+                <div>© 2026 DrivePrime Vehicle Rental System. All rights reserved.</div>
 
-                <span>
-                    Version 1.0
-                </span>
+                <div>Version 1.0.0</div>
 
             </footer>
-
 
         </div>
 
     </div>
-
 
 
     <!-- =========================================================
@@ -1256,7 +870,7 @@
                     </h2>
 
                     <p>
-                        Enter the customer's information.
+                        Add a new customer to the system.
                     </p>
 
                 </div>
@@ -1286,9 +900,25 @@
                         <input
                             type="text"
                             id="customerName"
-                            name="name"
-                            placeholder="Enter full name"
-                            maxlength="100"
+                            name="full_name"
+                            placeholder="John Doe"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="customerEmail">
+                            Email Address
+                        </label>
+
+                        <input
+                            type="email"
+                            id="customerEmail"
+                            name="email"
+                            placeholder="john@example.com"
                             required
                         >
 
@@ -1305,8 +935,7 @@
                             type="tel"
                             id="customerPhone"
                             name="phone"
-                            placeholder="Enter phone number"
-                            maxlength="15"
+                            placeholder="+91 98765 43210"
                             required
                         >
 
@@ -1315,34 +944,15 @@
 
                     <div class="form-group">
 
-                        <label for="customerEmail">
-                            Email
-                        </label>
-
-                        <input
-                            type="email"
-                            id="customerEmail"
-                            name="email"
-                            placeholder="Enter email address"
-                            maxlength="100"
-                            required
-                        >
-
-                    </div>
-
-
-                    <div class="form-group">
-
-                        <label for="licenseNumber">
+                        <label for="customerLicense">
                             License Number
                         </label>
 
                         <input
                             type="text"
-                            id="licenseNumber"
+                            id="customerLicense"
                             name="license_number"
-                            placeholder="Enter license number"
-                            maxlength="30"
+                            placeholder="DL-0123456"
                             required
                         >
 
@@ -1358,8 +968,7 @@
                         <textarea
                             id="customerAddress"
                             name="address"
-                            placeholder="Enter customer address"
-                            maxlength="200"
+                            placeholder="Enter full address"
                             rows="3"
                             required
                         ></textarea>
@@ -1383,7 +992,7 @@
                         type="submit"
                         class="btn btn-primary"
                     >
-                        Save Customer
+                        Add Customer
                     </button>
 
                 </div>
@@ -1393,7 +1002,6 @@
         </div>
 
     </div>
-
 
 
     <!-- =========================================================
@@ -1422,7 +1030,7 @@
                     </h2>
 
                     <p>
-                        Enter the vehicle information.
+                        Add a new vehicle to the fleet.
                     </p>
 
                 </div>
@@ -1445,16 +1053,15 @@
 
                     <div class="form-group">
 
-                        <label for="vehicleType">
-                            Vehicle Type
+                        <label for="licensePlate">
+                            License Plate
                         </label>
 
                         <input
                             type="text"
-                            id="vehicleType"
-                            name="vehicle_type"
-                            placeholder="e.g. SUV, Sedan, Hatchback"
-                            maxlength="30"
+                            id="licensePlate"
+                            name="license_plate"
+                            placeholder="HR-01-AB-1234"
                             required
                         >
 
@@ -1464,15 +1071,14 @@
                     <div class="form-group">
 
                         <label for="vehicleModel">
-                            Model
+                            Model Name
                         </label>
 
                         <input
                             type="text"
                             id="vehicleModel"
                             name="model"
-                            placeholder="Enter vehicle model"
-                            maxlength="50"
+                            placeholder="Swift, Innova, etc."
                             required
                         >
 
@@ -1481,17 +1087,17 @@
 
                     <div class="form-group">
 
-                        <label for="ratePerDay">
-                            Rate Per Day (₹)
+                        <label for="vehicleYear">
+                            Year of Make
                         </label>
 
                         <input
                             type="number"
-                            id="ratePerDay"
-                            name="rate_per_day"
-                            placeholder="0.00"
-                            min="0"
-                            step="0.01"
+                            id="vehicleYear"
+                            name="year"
+                            placeholder="2023"
+                            min="1990"
+                            max="2099"
                             required
                         >
 
@@ -1500,19 +1106,75 @@
 
                     <div class="form-group">
 
-                        <label for="availabilityStatus">
-                            Availability Status
+                        <label for="vehicleType">
+                            Vehicle Type
                         </label>
 
                         <select
-                            id="availabilityStatus"
-                            name="availability_status"
+                            id="vehicleType"
+                            name="type"
                             required
                         >
 
                             <option value="">
-                                Select status
+                                Select type
                             </option>
+
+                            <option value="sedan">
+                                Sedan
+                            </option>
+
+                            <option value="suv">
+                                SUV
+                            </option>
+
+                            <option value="hatchback">
+                                Hatchback
+                            </option>
+
+                            <option value="van">
+                                Van
+                            </option>
+
+                            <option value="truck">
+                                Truck
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="dailyRate">
+                            Daily Rate (₹)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="dailyRate"
+                            name="daily_rate"
+                            placeholder="2000"
+                            min="0"
+                            step="100"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="vehicleStatus">
+                            Status
+                        </label>
+
+                        <select
+                            id="vehicleStatus"
+                            name="availability_status"
+                            required
+                        >
 
                             <option value="available">
                                 Available
@@ -1547,7 +1209,7 @@
                         type="submit"
                         class="btn btn-primary"
                     >
-                        Save Vehicle
+                        Add Vehicle
                     </button>
 
                 </div>
@@ -1557,7 +1219,6 @@
         </div>
 
     </div>
-
 
 
     <!-- =========================================================
@@ -1582,11 +1243,11 @@
                 <div>
 
                     <h2 id="rentalModalTitle">
-                        Create New Rental
+                        Create Rental
                     </h2>
 
                     <p>
-                        Create a rental record for a customer.
+                        Create a new rental agreement.
                     </p>
 
                 </div>
@@ -1623,11 +1284,6 @@
                                 Select customer
                             </option>
 
-                            <!--
-                                Customer options will be populated
-                                dynamically using JavaScript.
-                            -->
-
                         </select>
 
                     </div>
@@ -1646,13 +1302,8 @@
                         >
 
                             <option value="">
-                                Select available vehicle
+                                Select vehicle
                             </option>
-
-                            <!--
-                                Vehicle options will be populated
-                                dynamically using JavaScript.
-                            -->
 
                         </select>
 
@@ -1748,7 +1399,6 @@
     </div>
 
 
-
     <!-- =========================================================
          PAYMENT MODAL
          ========================================================= -->
@@ -1770,13 +1420,9 @@
 
                 <div>
 
-                    <h2 id="paymentModalTitle">
-                        Record Payment
-                    </h2>
+                    <h2 id="paymentModalTitle">Record Payment</h2>
 
-                    <p>
-                        Add a payment against a rental.
-                    </p>
+                    <p id="paymentModalSubtitle">Add a payment against a rental.</p>
 
                 </div>
 
@@ -1930,12 +1576,7 @@
                         Cancel
                     </button>
 
-                    <button
-                        type="submit"
-                        class="btn btn-primary"
-                    >
-                        Record Payment
-                    </button>
+                    <button type="submit" class="btn btn-primary" id="paymentSubmitBtn">Record Payment</button>
 
                 </div>
 
@@ -1944,7 +1585,6 @@
         </div>
 
     </div>
-
 
 
     <!-- =========================================================
