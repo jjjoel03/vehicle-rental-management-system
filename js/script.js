@@ -1,10 +1,6 @@
-/* ============================================================
-   DRIVEPRIME — VEHICLE RENTAL MANAGEMENT SYSTEM
-   Premium, client-side demo logic with LocalStorage persistence.
-   ============================================================ */
 "use strict";
 
-const STORAGE_KEY = "vehicleRentalSystem";
+const API_BASE_URL = window.location.origin;
 
 let appData = {
     customers: [],
@@ -15,1416 +11,1786 @@ let appData = {
 };
 
 let editingId = null;
-let editingType = null;
 
-/* ------------------------------------------------------------
-   INITIALIZATION
-   ------------------------------------------------------------ */
-document.addEventListener("DOMContentLoaded", () => {
-    loadData();
-    migrateAndRepairData();
+
+/* =========================================================
+   START APPLICATION
+========================================================= */
+
+document.addEventListener("DOMContentLoaded", async () => {
     setupNavigation();
-    setupSidebar();
     setupModals();
     setupButtons();
     setupForms();
-    setupSearchAndFilters();
-    setupNotifications();
-    setupGlobalSearch();
+    setupSearch();
     updateHeaderDate();
-    syncVehicleStatuses(false);
-    updateDashboard();
-    renderAllTables();
-    showSection("dashboard");
+
+    await loadData();
 });
 
-/* ------------------------------------------------------------
-   DATA + STORAGE
-   ------------------------------------------------------------ */
-function emptyData() {
-    return { customers: [], vehicles: [], rentals: [], payments: [], transactions: [] };
-}
 
-function loadData() {
+/* =========================================================
+   API
+========================================================= */
+
+async function api(endpoint, options = {}) {
+    const response = await fetch(
+        `${API_BASE_URL}${endpoint}`,
+        {
+            ...options,
+            headers: {
+                "Content-Type": "application/json",
+                ...(options.headers || {})
+            }
+        }
+    );
+
+    let data = null;
+
     try {
-        const saved = localStorage.getItem(STORAGE_KEY);
-        if (!saved) return;
-        const parsed = JSON.parse(saved);
-        appData = {
-            customers: Array.isArray(parsed.customers) ? parsed.customers : [],
-            vehicles: Array.isArray(parsed.vehicles) ? parsed.vehicles : [],
-            rentals: Array.isArray(parsed.rentals) ? parsed.rentals : [],
-            payments: Array.isArray(parsed.payments) ? parsed.payments : [],
-            transactions: Array.isArray(parsed.transactions) ? parsed.transactions : []
-        };
-    } catch (error) {
-        console.error("Unable to load saved data:", error);
-        appData = emptyData();
-        showToast("Saved data could not be loaded. Starting with a clean workspace.", "warning");
+        data = await response.json();
+    } catch {
+        data = null;
     }
+
+    if (!response.ok) {
+        throw new Error(
+            data?.detail ||
+            `Request failed: ${response.status}`
+        );
+    }
+
+    return data;
 }
 
-function saveData() {
+
+/* =========================================================
+   LOAD DATA FROM FASTAPI / MYSQL
+========================================================= */
+
+async function loadData() {
+
+    console.log("Loading data from:", API_BASE_URL);
+
     try {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(appData));
-    } catch (error) {
-        console.error("Unable to save data:", error);
-        showToast("Unable to save data in this browser.", "error");
-    }
-}
+        appData.customers =
+            (await api("/customers")).map(
+                normalizeCustomer
+            );
 
-function migrateAndRepairData() {
-    // Normalize older records so missing optional fields never break rendering.
-    appData.customers = appData.customers.map(c => ({
-        id: String(c.id ?? createId()),
-        full_name: String(c.full_name ?? ""),
-        email: String(c.email ?? ""),
-        phone: String(c.phone ?? ""),
-        license_number: String(c.license_number ?? ""),
-        address: String(c.address ?? "")
-    }));
-
-    appData.vehicles = appData.vehicles.map(v => ({
-        id: String(v.id ?? createId()),
-        license_plate: String(v.license_plate ?? ""),
-        model: String(v.model ?? ""),
-        year: Number(v.year) || "",
-        type: String(v.type ?? ""),
-        daily_rate: Number(v.daily_rate) || 0,
-        availability_status: String(v.availability_status ?? "available")
-    }));
-
-    appData.rentals = appData.rentals.map(r => ({
-        id: String(r.id ?? createId()),
-        customer_id: String(r.customer_id ?? ""),
-        vehicle_id: String(r.vehicle_id ?? ""),
-        rental_date: String(r.rental_date ?? ""),
-        expected_return_date: String(r.expected_return_date ?? ""),
-        status: String(r.status ?? "active")
-    }));
-
-    appData.payments = appData.payments.map(p => ({
-        id: String(p.id ?? createId()),
-        rental_id: String(p.rental_id ?? ""),
-        amount: Number(p.amount) || 0,
-        payment_date: String(p.payment_date ?? ""),
-        payment_method: String(p.payment_method ?? ""),
-        status: String(p.status ?? "success")
-    }));
-
-    appData.transactions = appData.transactions.map(t => ({
-        id: String(t.id ?? createId()),
-        type: String(t.type ?? "payment"),
-        reference: String(t.reference ?? ""),
-        date: String(t.date ?? ""),
-        amount: Number(t.amount) || 0,
-        status: String(t.status ?? "success"),
-        payment_id: t.payment_id ? String(t.payment_id) : null
-    }));
-
-    // Legacy versions created payment + transaction with different IDs.
-    // Link those records by a conservative signature match, then create any
-    // missing transaction rows. This makes future edit/delete operations safe.
-    const usedTransactions = new Set();
-
-    appData.payments.forEach(payment => {
-        let transaction = appData.transactions.find(t =>
-            !usedTransactions.has(t.id) &&
-            t.type === "payment" &&
-            !t.payment_id &&
-            t.reference === payment.rental_id &&
-            Number(t.amount) === Number(payment.amount) &&
-            t.date === payment.payment_date &&
-            t.status === payment.status
+        console.log(
+            "Customers:",
+            appData.customers
         );
 
-        if (transaction) {
-            transaction.payment_id = payment.id;
-            usedTransactions.add(transaction.id);
-        }
-    });
-
-    appData.payments.forEach(payment => {
-        const hasTransaction = appData.transactions.some(
-            t => t.payment_id === payment.id
+    } catch (error) {
+        console.error(
+            "Customers failed:",
+            error
         );
 
-        if (!hasTransaction) {
-            appData.transactions.push(makePaymentTransaction(payment));
-        }
-    });
+        appData.customers = [];
+    }
 
-    saveData();
+
+    try {
+        appData.vehicles =
+            (await api("/vehicles")).map(
+                normalizeVehicle
+            );
+
+        console.log(
+            "Vehicles:",
+            appData.vehicles
+        );
+
+    } catch (error) {
+        console.error(
+            "Vehicles failed:",
+            error
+        );
+
+        appData.vehicles = [];
+    }
+
+
+    try {
+        appData.rentals =
+            (await api("/rentals")).map(
+                normalizeRental
+            );
+
+        console.log(
+            "Rentals:",
+            appData.rentals
+        );
+
+    } catch (error) {
+        console.error(
+            "Rentals failed:",
+            error
+        );
+
+        appData.rentals = [];
+    }
+
+
+    try {
+        appData.payments =
+            (await api("/payments")).map(
+                normalizePayment
+            );
+
+        console.log(
+            "Payments:",
+            appData.payments
+        );
+
+    } catch (error) {
+        console.error(
+            "Payments failed:",
+            error
+        );
+
+        appData.payments = [];
+    }
+
+
+    try {
+        appData.transactions =
+            (await api("/transactions")).map(
+                normalizeTransaction
+            );
+
+        console.log(
+            "Transactions:",
+            appData.transactions
+        );
+
+    } catch (error) {
+        console.error(
+            "Transactions failed:",
+            error
+        );
+
+        appData.transactions = [];
+    }
+
+
+    updateDerivedData();
+
+    renderAll();
+
+    updateDashboard();
+
+    console.log(
+        "Final application data:",
+        appData
+    );
 }
 
-function makePaymentTransaction(payment) {
+
+/* =========================================================
+   NORMALIZE DATABASE DATA
+========================================================= */
+
+function normalizeCustomer(customer) {
+
     return {
-        id: createId(),
-        type: "payment",
-        reference: payment.rental_id,
-        date: payment.payment_date,
-        amount: Number(payment.amount) || 0,
-        status: payment.status,
-        payment_id: payment.id
+        id: String(
+            customer.customer_id ??
+            customer.id ??
+            ""
+        ),
+
+        full_name:
+            customer.name ??
+            customer.full_name ??
+            "",
+
+        phone:
+            customer.phone ??
+            "",
+
+        email:
+            customer.email ??
+            "",
+
+        license_number:
+            customer.license_number ??
+            "",
+
+        address:
+            customer.address ??
+            ""
     };
 }
 
-function createId() {
-    if (window.crypto?.randomUUID) {
-        return window.crypto.randomUUID();
+
+function normalizeVehicle(vehicle) {
+
+    return {
+        id: String(
+            vehicle.vehicle_id ??
+            vehicle.id ??
+            ""
+        ),
+
+        model:
+            vehicle.vehicle_name ??
+            vehicle.model ??
+            "",
+
+        type:
+            vehicle.type ??
+            "",
+
+        daily_rate:
+            Number(
+                vehicle.rate_per_day ??
+                vehicle.daily_rate ??
+                0
+            ),
+
+        availability_status:
+            "available"
+    };
+}
+
+
+function normalizeRental(rental) {
+
+    const startDate =
+        String(
+            rental.start_date ??
+            rental.rental_date ??
+            ""
+        ).slice(0, 10);
+
+
+    const endDate =
+        String(
+            rental.end_date ??
+            rental.expected_return_date ??
+            ""
+        ).slice(0, 10);
+
+
+    const actualReturnDate =
+        rental.actual_return_date
+            ? String(
+                rental.actual_return_date
+            ).slice(0, 10)
+            : "";
+
+
+    return {
+        id: String(
+            rental.rental_id ??
+            rental.id ??
+            ""
+        ),
+
+        customer_id:
+            String(
+                rental.customer_id ??
+                ""
+            ),
+
+        vehicle_id:
+            String(
+                rental.vehicle_id ??
+                ""
+            ),
+
+        rental_date:
+            startDate,
+
+        expected_return_date:
+            endDate,
+
+        actual_return_date:
+            actualReturnDate,
+
+        status:
+            getRentalStatus(
+                endDate,
+                actualReturnDate
+            )
+    };
+}
+
+
+function normalizePayment(payment) {
+
+    return {
+        id: String(
+            payment.payment_id ??
+            payment.id ??
+            ""
+        ),
+
+        rental_id:
+            String(
+                payment.rental_id ??
+                ""
+            ),
+
+        amount:
+            Number(
+                payment.amount_paid ??
+                payment.amount ??
+                0
+            ),
+
+        total_amount:
+            Number(
+                payment.total_amount ??
+                0
+            ),
+
+        late_fee:
+            Number(
+                payment.late_fee ??
+                0
+            ),
+
+        status:
+            String(
+                payment.payment_status ??
+                payment.status ??
+                "Pending"
+            ).toLowerCase()
+    };
+}
+
+
+function normalizeTransaction(transaction) {
+
+    return {
+        id: String(
+            transaction.transaction_id ??
+            transaction.id ??
+            ""
+        ),
+
+        payment_id:
+            String(
+                transaction.payment_id ??
+                ""
+            ),
+
+        amount:
+            Number(
+                transaction.amount ??
+                0
+            ),
+
+        payment_method:
+            transaction.payment_mode ??
+            transaction.payment_method ??
+            "",
+
+        date:
+            String(
+                transaction.transaction_date ??
+                transaction.date ??
+                ""
+            ).slice(0, 10)
+    };
+}
+
+
+/* =========================================================
+   DERIVED DATA
+========================================================= */
+
+function getRentalStatus(
+    endDate,
+    actualReturnDate
+) {
+
+    if (actualReturnDate) {
+        return "completed";
     }
 
-    return `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    if (
+        endDate &&
+        endDate < today()
+    ) {
+        return "overdue";
+    }
+
+    return "active";
 }
 
-/* ------------------------------------------------------------
-   NAVIGATION + SIDEBAR
-   ------------------------------------------------------------ */
+
+function updateDerivedData() {
+
+    appData.rentals =
+        appData.rentals.map(
+            rental => ({
+                ...rental,
+
+                status:
+                    getRentalStatus(
+                        rental.expected_return_date,
+                        rental.actual_return_date
+                    )
+            })
+        );
+
+
+    appData.vehicles =
+        appData.vehicles.map(
+            vehicle => {
+
+                const rented =
+                    appData.rentals.some(
+                        rental =>
+                            rental.vehicle_id ===
+                                vehicle.id &&
+                            rental.status ===
+                                "active"
+                    );
+
+                return {
+                    ...vehicle,
+
+                    availability_status:
+                        rented
+                            ? "rented"
+                            : "available"
+                };
+            }
+        );
+}
+
+
+/* =========================================================
+   NAVIGATION
+========================================================= */
+
 function setupNavigation() {
+
     document
-        .querySelectorAll(".nav-item, [data-section]")
+        .querySelectorAll(
+            ".nav-item, [data-section]"
+        )
         .forEach(button => {
-            button.addEventListener("click", event => {
-                const section = event.currentTarget.dataset.section;
 
-                if (!section) return;
+            button.addEventListener(
+                "click",
+                event => {
 
-                showSection(section);
-            });
+                    const section =
+                        event.currentTarget
+                            .dataset.section;
+
+                    if (section) {
+                        showSection(section);
+                    }
+                }
+            );
         });
 }
+
 
 function showSection(sectionName) {
-    document.querySelectorAll(".content-section").forEach(section => {
-        section.classList.remove("active-section", "active");
-    });
 
     document
-        .getElementById(sectionName)
-        ?.classList.add("active-section", "active");
+        .querySelectorAll(
+            ".content-section"
+        )
+        .forEach(section => {
 
-    document.querySelectorAll(".nav-item").forEach(button => {
-        button.classList.toggle(
-            "active",
-            button.dataset.section === sectionName
+            section.classList.remove(
+                "active",
+                "active-section"
+            );
+        });
+
+
+    const section =
+        document.getElementById(
+            sectionName
         );
-    });
+
+
+    if (section) {
+
+        section.classList.add(
+            "active",
+            "active-section"
+        );
+    }
+
+
+    document
+        .querySelectorAll(
+            ".nav-item"
+        )
+        .forEach(item => {
+
+            item.classList.toggle(
+                "active",
+                item.dataset.section ===
+                    sectionName
+            );
+        });
+
 
     const titles = {
-        dashboard: "Dashboard",
-        customers: "Customers",
-        vehicles: "Vehicles",
-        rentals: "Rentals",
-        payments: "Payments",
-        transactions: "Transactions"
+
+        dashboard:
+            "Dashboard",
+
+        customers:
+            "Customers",
+
+        vehicles:
+            "Vehicles",
+
+        rentals:
+            "Rentals",
+
+        payments:
+            "Payments",
+
+        transactions:
+            "Transactions"
     };
 
-    const pageTitle = document.getElementById("pageTitle");
+
+    const pageTitle =
+        document.getElementById(
+            "pageTitle"
+        );
+
 
     if (pageTitle) {
-        pageTitle.textContent = titles[sectionName] || "Dashboard";
+
+        pageTitle.textContent =
+            titles[sectionName] ||
+            "Dashboard";
     }
-
-    closeSidebar();
 }
 
-function setupSidebar() {
-    const sidebar = document.getElementById("sidebar");
-    const menuToggle = document.getElementById("menuToggle");
-    const sidebarClose = document.getElementById("sidebarClose");
 
-    menuToggle?.addEventListener("click", () => {
-        sidebar?.classList.add("open");
-    });
-
-    sidebarClose?.addEventListener("click", closeSidebar);
-
-    document.addEventListener("click", event => {
-        if (
-            window.innerWidth <= 900 &&
-            sidebar?.classList.contains("open") &&
-            !sidebar.contains(event.target) &&
-            !menuToggle?.contains(event.target)
-        ) {
-            closeSidebar();
-        }
-    });
-}
-
-function closeSidebar() {
-    document.getElementById("sidebar")?.classList.remove("open");
-}
-
-/* ------------------------------------------------------------
+/* =========================================================
    MODALS
-   ------------------------------------------------------------ */
+========================================================= */
+
 function setupModals() {
-    document.querySelectorAll(".modal-overlay").forEach(modal => {
-        modal.addEventListener("click", event => {
-            if (event.target === modal) {
-                closeModal(modal.id);
-            }
-        });
-    });
 
-    document.querySelectorAll("[data-close-modal]").forEach(button => {
-        button.addEventListener("click", () => {
-            closeModal(button.dataset.closeModal);
-        });
-    });
+    document
+        .querySelectorAll(
+            ".modal-overlay"
+        )
+        .forEach(modal => {
 
-    document.addEventListener("keydown", event => {
-        if (event.key === "Escape") {
-            document
-                .querySelectorAll(".modal-overlay.active")
-                .forEach(modal => {
-                    closeModal(modal.id);
-                });
-        }
-    });
+            modal.addEventListener(
+                "click",
+                event => {
+
+                    if (
+                        event.target ===
+                        modal
+                    ) {
+
+                        closeModal(
+                            modal.id
+                        );
+                    }
+                }
+            );
+        });
+
+
+    document
+        .querySelectorAll(
+            "[data-close-modal]"
+        )
+        .forEach(button => {
+
+            button.addEventListener(
+                "click",
+                () => {
+
+                    closeModal(
+                        button.dataset
+                            .closeModal
+                    );
+                }
+            );
+        });
 }
 
-function openModal(modalId, record = null, type = null) {
-    const modal = document.getElementById(modalId);
 
-    if (!modal) return;
+function openModal(
+    modalId,
+    type,
+    record = null
+) {
 
-    if (type === "rental") {
-        populateRentalDropdowns(record?.vehicle_id);
+    const modal =
+        document.getElementById(
+            modalId
+        );
+
+
+    if (!modal) {
+        return;
     }
 
-    if (type === "payment") {
-        populatePaymentDropdowns(record?.rental_id);
-    }
 
-    editingId = record?.id ?? null;
-    editingType = record ? type : null;
+    editingId =
+        record?.id ??
+        null;
 
-    const form = modal.querySelector("form");
+
+    const form =
+        modal.querySelector(
+            "form"
+        );
+
 
     if (form) {
         form.reset();
-        clearErrors(form);
     }
 
-    if (record && type) {
-        fillForm(type, record);
-    } else {
-        setDefaultValues(type);
+
+    if (type === "rental") {
+        fillRentalDropdowns();
     }
 
-    updateModalTitle(type, Boolean(record));
 
-    modal.classList.add("active");
-    modal.setAttribute("aria-hidden", "false");
+    if (type === "payment") {
+        fillPaymentDropdown();
+    }
 
-    requestAnimationFrame(() => {
-        const first = modal.querySelector(
-            "input, select, textarea"
+
+    if (record) {
+        fillForm(
+            type,
+            record
         );
+    } else {
+        setDefaults(type);
+    }
 
-        first?.focus();
-    });
+
+    modal.classList.add(
+        "active"
+    );
 }
+
 
 function closeModal(modalId) {
-    const modal = document.getElementById(modalId);
 
-    if (!modal) return;
+    const modal =
+        document.getElementById(
+            modalId
+        );
 
-    modal.classList.remove("active");
-    modal.setAttribute("aria-hidden", "true");
+
+    if (!modal) {
+        return;
+    }
+
+
+    modal.classList.remove(
+        "active"
+    );
+
 
     editingId = null;
-    editingType = null;
 }
 
-function updateModalTitle(type, isEditing) {
-    const config = {
-        customer: [
-            "customerModalTitle",
-            isEditing ? "Edit Customer" : "Add Customer"
-        ],
 
-        vehicle: [
-            "vehicleModalTitle",
-            isEditing ? "Edit Vehicle" : "Add Vehicle"
-        ],
+/* =========================================================
+   BUTTONS
+========================================================= */
 
-        rental: [
-            "rentalModalTitle",
-            isEditing ? "Edit Rental" : "Create Rental"
-        ],
-
-        payment: [
-            "paymentModalTitle",
-            isEditing ? "Edit Payment" : "Record Payment"
-        ]
-    };
-
-    if (!config[type]) return;
-
-    const [id, title] = config[type];
-    const element = document.getElementById(id);
-
-    if (element) {
-        element.textContent = title;
-    }
-
-    if (type === "payment") {
-        const subtitle = document.getElementById(
-            "paymentModalSubtitle"
-        );
-
-        if (subtitle) {
-            subtitle.textContent = isEditing
-                ? "Update the payment record and its transaction."
-                : "Add a payment against a rental.";
-        }
-
-        const submit = document.getElementById(
-            "paymentSubmitBtn"
-        );
-
-        if (submit) {
-            submit.textContent = isEditing
-                ? "Save Changes"
-                : "Record Payment";
-        }
-    }
-}
-
-function fillForm(type, record) {
-    if (type === "customer") {
-        const form = document.getElementById("customerForm");
-
-        if (!form) return;
-
-        form.customerName.value = record.full_name || "";
-        form.customerEmail.value = record.email || "";
-        form.customerPhone.value = record.phone || "";
-        form.customerLicense.value = record.license_number || "";
-        form.customerAddress.value = record.address || "";
-    }
-
-    if (type === "vehicle") {
-        const form = document.getElementById("vehicleForm");
-
-        if (!form) return;
-
-        form.licensePlate.value = record.license_plate || "";
-        form.vehicleModel.value = record.model || "";
-        form.vehicleYear.value = record.year || "";
-        form.vehicleType.value = record.type || "";
-        form.dailyRate.value = record.daily_rate ?? "";
-        form.vehicleStatus.value =
-            record.availability_status || "available";
-    }
-
-    if (type === "rental") {
-        const form = document.getElementById("rentalForm");
-
-        if (!form) return;
-
-        form.rentalCustomer.value = record.customer_id || "";
-        form.rentalVehicle.value = record.vehicle_id || "";
-        form.rentalDate.value = record.rental_date || "";
-        form.expectedReturnDate.value =
-            record.expected_return_date || "";
-        form.rentalStatus.value = record.status || "active";
-    }
-
-    if (type === "payment") {
-        const form = document.getElementById("paymentForm");
-
-        if (!form) return;
-
-        form.paymentRental.value = record.rental_id || "";
-        form.paymentAmount.value = record.amount ?? "";
-        form.paymentDate.value = record.payment_date || "";
-        form.paymentMethod.value = record.payment_method || "";
-        form.paymentStatus.value = record.status || "success";
-    }
-}
-
-function setDefaultValues(type) {
-    const today = localDateInputValue();
-
-    if (type === "customer") {
-        document.getElementById("customerName")?.focus();
-    }
-
-    if (type === "vehicle") {
-        document.getElementById("licensePlate")?.focus();
-    }
-
-    if (type === "rental") {
-        const form = document.getElementById("rentalForm");
-
-        if (form) {
-            form.rentalDate.value = today;
-            form.rentalStatus.value = "active";
-            form.rentalDate.min = today;
-            form.expectedReturnDate.min = today;
-        }
-    }
-
-    if (type === "payment") {
-        const form = document.getElementById("paymentForm");
-
-        if (form) {
-            form.paymentDate.value = today;
-        }
-    }
-}
-
-function clearErrors(form) {
-    form
-        .querySelectorAll(".form-error")
-        .forEach(error => error.remove());
-
-    form
-        .querySelectorAll(".input-error")
-        .forEach(input => input.classList.remove("input-error"));
-}
-
-function showFormError(form, message, field) {
-    clearErrors(form);
-
-    if (field) {
-        field.classList.add("input-error");
-        field.focus();
-    }
-
-    const error = document.createElement("div");
-
-    error.className = "form-error";
-    error.textContent = message;
-
-    form.querySelector(".modal-footer")?.before(error);
-}
-
-/* ------------------------------------------------------------
-   BUTTONS + FORMS
-   ------------------------------------------------------------ */
 function setupButtons() {
-    document
-        .getElementById("addCustomerBtn")
-        ?.addEventListener("click", () => {
-            openModal("customerModal", null, "customer");
-        });
 
-    document
-        .getElementById("addVehicleBtn")
-        ?.addEventListener("click", () => {
-            openModal("vehicleModal", null, "vehicle");
-        });
+    bind(
+        "addCustomerBtn",
+        () => openModal(
+            "customerModal",
+            "customer"
+        )
+    );
 
-    document
-        .getElementById("addRentalBtn")
-        ?.addEventListener("click", () => {
-            openModal("rentalModal", null, "rental");
-        });
 
-    document
-        .getElementById("addPaymentBtn")
-        ?.addEventListener("click", () => {
-            openModal("paymentModal", null, "payment");
-        });
+    bind(
+        "addVehicleBtn",
+        () => openModal(
+            "vehicleModal",
+            "vehicle"
+        )
+    );
 
-    document
-        .getElementById("quickAddCustomer")
-        ?.addEventListener("click", () => {
-            openModal("customerModal", null, "customer");
-        });
 
-    document
-        .getElementById("quickAddVehicle")
-        ?.addEventListener("click", () => {
-            openModal("vehicleModal", null, "vehicle");
-        });
+    bind(
+        "addRentalBtn",
+        () => openModal(
+            "rentalModal",
+            "rental"
+        )
+    );
 
-    document
-        .getElementById("quickCreateRental")
-        ?.addEventListener("click", () => {
-            openModal("rentalModal", null, "rental");
-        });
 
-    document
-        .getElementById("quickRecordPayment")
-        ?.addEventListener("click", () => {
-            openModal("paymentModal", null, "payment");
-        });
+    bind(
+        "addPaymentBtn",
+        () => openModal(
+            "paymentModal",
+            "payment"
+        )
+    );
+
+
+    bind(
+        "quickAddCustomer",
+        () => openModal(
+            "customerModal",
+            "customer"
+        )
+    );
+
+
+    bind(
+        "quickAddVehicle",
+        () => openModal(
+            "vehicleModal",
+            "vehicle"
+        )
+    );
+
+
+    bind(
+        "quickCreateRental",
+        () => openModal(
+            "rentalModal",
+            "rental"
+        )
+    );
+
+
+    bind(
+        "quickRecordPayment",
+        () => openModal(
+            "paymentModal",
+            "payment"
+        )
+    );
 }
+
+
+/* =========================================================
+   FORMS
+========================================================= */
 
 function setupForms() {
-    document
-        .getElementById("customerForm")
-        ?.addEventListener("submit", event => {
-            event.preventDefault();
-            saveCustomer();
-        });
 
-    document
-        .getElementById("vehicleForm")
-        ?.addEventListener("submit", event => {
-            event.preventDefault();
-            saveVehicle();
-        });
+    bindForm(
+        "customerForm",
+        saveCustomer
+    );
 
-    document
-        .getElementById("rentalForm")
-        ?.addEventListener("submit", event => {
-            event.preventDefault();
-            saveRental();
-        });
 
-    document
-        .getElementById("paymentForm")
-        ?.addEventListener("submit", event => {
-            event.preventDefault();
-            savePayment();
-        });
+    bindForm(
+        "vehicleForm",
+        saveVehicle
+    );
 
-    document
-        .getElementById("rentalDate")
-        ?.addEventListener("change", event => {
-            const end = document.getElementById(
+
+    bindForm(
+        "rentalForm",
+        saveRental
+    );
+
+
+    bindForm(
+        "paymentForm",
+        savePayment
+    );
+
+
+    const rentalDate =
+        document.getElementById(
+            "rentalDate"
+        );
+
+
+    const expectedReturnDate =
+        document.getElementById(
+            "expectedReturnDate"
+        );
+
+
+    rentalDate?.addEventListener(
+        "change",
+        () => {
+
+            if (expectedReturnDate) {
+
+                expectedReturnDate.min =
+                    rentalDate.value;
+            }
+        }
+    );
+}
+
+
+/* =========================================================
+   CUSTOMER
+========================================================= */
+
+async function saveCustomer(event) {
+
+    event.preventDefault();
+
+
+    const name =
+        value(
+            "customerName"
+        ).trim();
+
+    const phone =
+        value(
+            "customerPhone"
+        ).trim();
+
+    const email =
+        value(
+            "customerEmail"
+        ).trim();
+
+
+    if (
+        !name ||
+        !phone ||
+        !email
+    ) {
+
+        showToast(
+            "Please fill in all required customer fields.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const data = {
+        name,
+        phone,
+        email
+    };
+
+
+    try {
+
+        if (editingId) {
+
+            await api(
+                `/customers/${editingId}`,
+                {
+                    method: "PUT",
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            showToast(
+                "Customer updated.",
+                "success"
+            );
+
+        } else {
+
+            await api(
+                "/customers",
+                {
+                    method: "POST",
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            showToast(
+                "Customer added.",
+                "success"
+            );
+        }
+
+
+        closeModal(
+            "customerModal"
+        );
+
+
+        await loadData();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   VEHICLE
+========================================================= */
+
+async function saveVehicle(event) {
+
+    event.preventDefault();
+
+
+    const model =
+        value(
+            "vehicleModel"
+        ).trim();
+
+    const type =
+        value(
+            "vehicleType"
+        ).trim();
+
+    const rate =
+        Number(
+            value(
+                "ratePerDay"
+            )
+        );
+
+
+    if (
+        !model ||
+        !type ||
+        !Number.isFinite(rate) ||
+        rate < 0
+    ) {
+
+        showToast(
+            "Please enter valid vehicle details.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const data = {
+
+        vehicle_name:
+            model,
+
+        type:
+            type,
+
+        rate_per_day:
+            rate
+    };
+
+
+    try {
+
+        if (editingId) {
+
+            await api(
+                `/vehicles/${editingId}`,
+                {
+                    method: "PUT",
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            showToast(
+                "Vehicle updated.",
+                "success"
+            );
+
+        } else {
+
+            await api(
+                "/vehicles",
+                {
+                    method: "POST",
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            showToast(
+                "Vehicle added.",
+                "success"
+            );
+        }
+
+
+        closeModal(
+            "vehicleModal"
+        );
+
+
+        await loadData();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   RENTAL
+========================================================= */
+
+async function saveRental(event) {
+
+    event.preventDefault();
+
+
+    const customerId =
+        value(
+            "rentalCustomer"
+        );
+
+    const vehicleId =
+        value(
+            "rentalVehicle"
+        );
+
+    const startDate =
+        value(
+            "rentalDate"
+        );
+
+    const endDate =
+        value(
+            "expectedReturnDate"
+        );
+
+    const status =
+        value(
+            "rentalStatus"
+        );
+
+
+    if (
+        !customerId ||
+        !vehicleId ||
+        !startDate ||
+        !endDate
+    ) {
+
+        showToast(
+            "Please complete the rental form.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (
+        endDate <
+        startDate
+    ) {
+
+        showToast(
+            "Return date cannot be before rental date.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const customerExists =
+        appData.customers.some(
+            customer =>
+                customer.id ===
+                String(customerId)
+        );
+
+
+    if (!customerExists) {
+
+        showToast(
+            "Selected customer does not exist.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const vehicle =
+        appData.vehicles.find(
+            item =>
+                item.id ===
+                String(vehicleId)
+        );
+
+
+    if (!vehicle) {
+
+        showToast(
+            "Selected vehicle does not exist.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const otherActiveRental =
+        appData.rentals.find(
+            rental =>
+                rental.id !==
+                    String(editingId) &&
+                rental.vehicle_id ===
+                    String(vehicleId) &&
+                rental.status ===
+                    "active"
+        );
+
+
+    if (
+        status === "active" &&
+        otherActiveRental
+    ) {
+
+        showToast(
+            "That vehicle is already rented.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const data = {
+
+        customer_id:
+            Number(customerId),
+
+        vehicle_id:
+            Number(vehicleId),
+
+        start_date:
+            startDate,
+
+        end_date:
+            endDate,
+
+        actual_return_date:
+            status === "completed"
+                ? endDate
+                : null
+    };
+
+
+    try {
+
+        if (editingId) {
+
+            await api(
+                `/rentals/${editingId}`,
+                {
+                    method: "PUT",
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            showToast(
+                "Rental updated.",
+                "success"
+            );
+
+        } else {
+
+            await api(
+                "/rentals",
+                {
+                    method: "POST",
+                    body:
+                        JSON.stringify(data)
+                }
+            );
+
+            showToast(
+                "Rental created.",
+                "success"
+            );
+        }
+
+
+        closeModal(
+            "rentalModal"
+        );
+
+
+        await loadData();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   PAYMENT
+========================================================= */
+
+async function savePayment(event) {
+
+    event.preventDefault();
+
+
+    const rentalId =
+        value(
+            "paymentRental"
+        );
+
+    const amount =
+        Number(
+            value(
+                "paymentAmount"
+            )
+        );
+
+    let method =
+        value(
+            "paymentMethod"
+        );
+
+
+    method =
+        normalizePaymentMethod(
+            method
+        );
+
+
+    if (
+        !rentalId ||
+        !Number.isFinite(amount) ||
+        amount <= 0 ||
+        !method
+    ) {
+
+        showToast(
+            "Please enter valid payment details.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    if (
+        ![
+            "Cash",
+            "Card",
+            "UPI"
+        ].includes(method)
+    ) {
+
+        showToast(
+            "Only Cash, Card and UPI are supported by the database.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    const rentalExists =
+        appData.rentals.some(
+            rental =>
+                rental.id ===
+                String(rentalId)
+        );
+
+
+    if (!rentalExists) {
+
+        showToast(
+            "Selected rental does not exist.",
+            "error"
+        );
+
+        return;
+    }
+
+
+    try {
+
+        let payment =
+            appData.payments.find(
+                item =>
+                    item.rental_id ===
+                    String(rentalId)
+            );
+
+
+        let paymentId;
+
+
+        if (payment) {
+
+            paymentId =
+                Number(
+                    payment.id
+                );
+
+        } else {
+
+            payment =
+                await api(
+                    "/payments",
+                    {
+                        method: "POST",
+
+                        body:
+                            JSON.stringify({
+
+                                rental_id:
+                                    Number(
+                                        rentalId
+                                    ),
+
+                                total_amount:
+                                    amount,
+
+                                late_fee:
+                                    0
+                            })
+                    }
+                );
+
+
+            paymentId =
+                Number(
+                    payment.payment_id ??
+                    payment.id
+                );
+        }
+
+
+        await api(
+            "/transactions",
+            {
+                method: "POST",
+
+                body:
+                    JSON.stringify({
+
+                        payment_id:
+                            paymentId,
+
+                        amount:
+                            amount,
+
+                        payment_mode:
+                            method
+                    })
+            }
+        );
+
+
+        closeModal(
+            "paymentModal"
+        );
+
+
+        showToast(
+            "Payment recorded.",
+            "success"
+        );
+
+
+        await loadData();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   RENTAL DROPDOWNS
+========================================================= */
+
+function fillRentalDropdowns() {
+
+    const customerSelect =
+        document.getElementById(
+            "rentalCustomer"
+        );
+
+
+    const vehicleSelect =
+        document.getElementById(
+            "rentalVehicle"
+        );
+
+
+    if (customerSelect) {
+
+        customerSelect.innerHTML =
+            `<option value="">
+                Select customer
+            </option>`;
+
+
+        appData.customers.forEach(
+            customer => {
+
+                customerSelect.add(
+                    new Option(
+                        `${customer.full_name} (#${customer.id})`,
+                        customer.id
+                    )
+                );
+            }
+        );
+    }
+
+
+    if (vehicleSelect) {
+
+        vehicleSelect.innerHTML =
+            `<option value="">
+                Select available vehicle
+            </option>`;
+
+
+        appData.vehicles.forEach(
+            vehicle => {
+
+                const rented =
+                    appData.rentals.some(
+                        rental =>
+                            rental.vehicle_id ===
+                                vehicle.id &&
+                            rental.status ===
+                                "active" &&
+                            rental.id !==
+                                String(
+                                    editingId
+                                )
+                    );
+
+
+                const option =
+                    new Option(
+                        `${vehicle.model} - ${capitalize(vehicle.type)}`,
+                        vehicle.id
+                    );
+
+
+                option.disabled =
+                    rented;
+
+
+                vehicleSelect.add(
+                    option
+                );
+            }
+        );
+    }
+}
+
+
+/* =========================================================
+   PAYMENT DROPDOWN
+========================================================= */
+
+function fillPaymentDropdown() {
+
+    const select =
+        document.getElementById(
+            "paymentRental"
+        );
+
+
+    if (!select) {
+        return;
+    }
+
+
+    select.innerHTML =
+        `<option value="">
+            Select rental
+        </option>`;
+
+
+    appData.rentals.forEach(
+        rental => {
+
+            const customer =
+                appData.customers.find(
+                    item =>
+                        item.id ===
+                        rental.customer_id
+                );
+
+
+            const vehicle =
+                appData.vehicles.find(
+                    item =>
+                        item.id ===
+                        rental.vehicle_id
+                );
+
+
+            select.add(
+                new Option(
+                    `#${rental.id} - ${customer?.full_name || "Unknown"} - ${vehicle?.model || "Unknown"}`,
+                    rental.id
+                )
+            );
+        }
+    );
+}
+
+
+/* =========================================================
+   FILL EDIT FORMS
+========================================================= */
+
+function fillForm(
+    type,
+    record
+) {
+
+    if (type === "customer") {
+
+        setValue(
+            "customerName",
+            record.full_name
+        );
+
+        setValue(
+            "customerPhone",
+            record.phone
+        );
+
+        setValue(
+            "customerEmail",
+            record.email
+        );
+
+        setValue(
+            "licenseNumber",
+            record.license_number
+        );
+
+        setValue(
+            "customerAddress",
+            record.address
+        );
+    }
+
+
+    if (type === "vehicle") {
+
+        setValue(
+            "vehicleType",
+            record.type
+        );
+
+        setValue(
+            "vehicleModel",
+            record.model
+        );
+
+        setValue(
+            "ratePerDay",
+            record.daily_rate
+        );
+
+        setValue(
+            "availabilityStatus",
+            record.availability_status
+        );
+    }
+
+
+    if (type === "rental") {
+
+        setValue(
+            "rentalCustomer",
+            record.customer_id
+        );
+
+        setValue(
+            "rentalVehicle",
+            record.vehicle_id
+        );
+
+        setValue(
+            "rentalDate",
+            record.rental_date
+        );
+
+        setValue(
+            "expectedReturnDate",
+            record.expected_return_date
+        );
+
+        setValue(
+            "rentalStatus",
+            record.status
+        );
+    }
+
+
+    if (type === "payment") {
+
+        setValue(
+            "paymentRental",
+            record.rental_id
+        );
+
+        setValue(
+            "paymentAmount",
+            record.amount
+        );
+
+        setValue(
+            "paymentStatus",
+            record.status
+        );
+    }
+}
+
+
+/* =========================================================
+   DEFAULT FORM VALUES
+========================================================= */
+
+function setDefaults(type) {
+
+    if (type === "rental") {
+
+        setValue(
+            "rentalDate",
+            today()
+        );
+
+        setValue(
+            "rentalStatus",
+            "active"
+        );
+
+
+        const expectedReturnDate =
+            document.getElementById(
                 "expectedReturnDate"
             );
 
-            if (end) {
-                end.min =
-                    event.target.value || localDateInputValue();
-            }
-        });
-}
 
-function saveCustomer() {
-    const form = document.getElementById("customerForm");
-
-    if (!form) return;
-
-    const data = {
-        full_name: form.customerName.value.trim(),
-        email: form.customerEmail.value.trim(),
-        phone: form.customerPhone.value.trim(),
-        license_number: form.customerLicense.value.trim(),
-        address: form.customerAddress.value.trim()
-    };
-
-    if (
-        !data.full_name ||
-        !data.email ||
-        !data.phone ||
-        !data.license_number ||
-        !data.address
-    ) {
-        showFormError(
-            form,
-            "Please complete every customer field.",
-            form.querySelector(":invalid")
-        );
-
-        return;
-    }
-
-    const duplicate = appData.customers.find(
-        c =>
-            c.id !== editingId &&
-            (
-                c.email.toLowerCase() ===
-                    data.email.toLowerCase() ||
-                c.license_number.toLowerCase() ===
-                    data.license_number.toLowerCase()
-            )
-    );
-
-    if (duplicate) {
-        showFormError(
-            form,
-            "Email or license number is already registered.",
-            form.customerEmail
-        );
-
-        return;
-    }
-
-    if (editingId) {
-        const index = appData.customers.findIndex(
-            c => c.id === editingId
-        );
-
-        if (index === -1) {
-            return showToast(
-                "Customer no longer exists.",
-                "error"
-            );
+        if (expectedReturnDate) {
+            expectedReturnDate.min =
+                today();
         }
-
-        appData.customers[index] = {
-            ...appData.customers[index],
-            ...data
-        };
-
-        showToast(
-            "Customer updated successfully",
-            "success"
-        );
-    } else {
-        appData.customers.push({
-            id: createId(),
-            ...data
-        });
-
-        showToast(
-            "Customer added successfully",
-            "success"
-        );
     }
 
-    saveData();
 
-    renderCustomersTable();
-    renderRentalsTable();
-    renderDashboardRentals();
-    updateDashboard();
+    if (type === "payment") {
 
-    closeModal("customerModal");
-}
-
-function saveVehicle() {
-    const form = document.getElementById("vehicleForm");
-
-    if (!form) return;
-
-    const data = {
-        license_plate: form.licensePlate.value
-            .trim()
-            .toUpperCase(),
-
-        model: form.vehicleModel.value.trim(),
-
-        year: Number.parseInt(
-            form.vehicleYear.value,
-            10
-        ),
-
-        type: form.vehicleType.value,
-
-        daily_rate: Number.parseFloat(
-            form.dailyRate.value
-        ),
-
-        availability_status:
-            form.vehicleStatus.value
-    };
-
-    if (
-        !data.license_plate ||
-        !data.model ||
-        !Number.isInteger(data.year) ||
-        !data.type ||
-        !Number.isFinite(data.daily_rate) ||
-        data.daily_rate < 0
-    ) {
-        showFormError(
-            form,
-            "Please enter valid vehicle details.",
-            form.querySelector(":invalid")
+        setValue(
+            "paymentDate",
+            today()
         );
-
-        return;
-    }
-
-    const duplicate = appData.vehicles.find(
-        v =>
-            v.id !== editingId &&
-            v.license_plate.toLowerCase() ===
-                data.license_plate.toLowerCase()
-    );
-
-    if (duplicate) {
-        showFormError(
-            form,
-            "That license plate is already registered.",
-            form.licensePlate
-        );
-
-        return;
-    }
-
-    const activeRental = appData.rentals.find(
-        r =>
-            r.vehicle_id === editingId &&
-            r.status === "active"
-    );
-
-    if (
-        editingId &&
-        activeRental &&
-        data.availability_status !== "rented"
-    ) {
-        showFormError(
-            form,
-            "This vehicle is attached to an active rental, so its status must remain Rented.",
-            form.vehicleStatus
-        );
-
-        return;
-    }
-
-    if (editingId) {
-        const index = appData.vehicles.findIndex(
-            v => v.id === editingId
-        );
-
-        if (index === -1) {
-            return showToast(
-                "Vehicle no longer exists.",
-                "error"
-            );
-        }
-
-        appData.vehicles[index] = {
-            ...appData.vehicles[index],
-            ...data
-        };
-
-        showToast(
-            "Vehicle updated successfully",
-            "success"
-        );
-    } else {
-        appData.vehicles.push({
-            id: createId(),
-            ...data
-        });
-
-        showToast(
-            "Vehicle added successfully",
-            "success"
-        );
-    }
-
-    syncVehicleStatuses(false);
-    saveData();
-
-    renderVehiclesTable();
-    renderRentalsTable();
-    updateDashboard();
-
-    closeModal("vehicleModal");
-}
-
-function saveRental() {
-    const form = document.getElementById("rentalForm");
-
-    if (!form) return;
-
-    const data = {
-        customer_id: form.rentalCustomer.value,
-        vehicle_id: form.rentalVehicle.value,
-        rental_date: form.rentalDate.value,
-        expected_return_date:
-            form.expectedReturnDate.value,
-        status: form.rentalStatus.value
-    };
-
-    if (!data.customer_id || !data.vehicle_id) {
-        showFormError(
-            form,
-            "Please select both a customer and a vehicle.",
-            !data.customer_id
-                ? form.rentalCustomer
-                : form.rentalVehicle
-        );
-
-        return;
-    }
-
-    if (
-        !data.rental_date ||
-        !data.expected_return_date
-    ) {
-        showFormError(
-            form,
-            "Both rental dates are required.",
-            !data.rental_date
-                ? form.rentalDate
-                : form.expectedReturnDate
-        );
-
-        return;
-    }
-
-    if (
-        data.expected_return_date <
-        data.rental_date
-    ) {
-        showFormError(
-            form,
-            "Expected return date cannot be before the rental date.",
-            form.expectedReturnDate
-        );
-
-        return;
-    }
-
-    const customerExists = appData.customers.some(
-        c => c.id === data.customer_id
-    );
-
-    if (!customerExists) {
-        showFormError(
-            form,
-            "Selected customer no longer exists.",
-            form.rentalCustomer
-        );
-
-        return;
-    }
-
-    const vehicle = appData.vehicles.find(
-        v => v.id === data.vehicle_id
-    );
-
-    if (!vehicle) {
-        showFormError(
-            form,
-            "Selected vehicle no longer exists.",
-            form.rentalVehicle
-        );
-
-        return;
-    }
-
-    const previousRental = editingId
-        ? appData.rentals.find(r => r.id === editingId)
-        : null;
-
-    const changingVehicle =
-        previousRental &&
-        previousRental.vehicle_id !== data.vehicle_id;
-
-    const otherActiveRental = appData.rentals.find(
-        r =>
-            r.id !== editingId &&
-            r.vehicle_id === data.vehicle_id &&
-            r.status === "active"
-    );
-
-    if (
-        data.status === "active" &&
-        otherActiveRental
-    ) {
-        showFormError(
-            form,
-            "That vehicle is already assigned to another active rental.",
-            form.rentalVehicle
-        );
-
-        return;
-    }
-
-    if (
-        data.status === "active" &&
-        vehicle.availability_status === "maintenance"
-    ) {
-        showFormError(
-            form,
-            "A vehicle under maintenance cannot be rented.",
-            form.rentalVehicle
-        );
-
-        return;
-    }
-
-    if (
-        data.status === "active" &&
-        !changingVehicle &&
-        previousRental?.status === "active"
-    ) {
-        // Same active rental is allowed.
-    } else if (
-        data.status === "active" &&
-        vehicle.availability_status === "rented" &&
-        previousRental?.vehicle_id !== vehicle.id
-    ) {
-        showFormError(
-            form,
-            "That vehicle is currently rented.",
-            form.rentalVehicle
-        );
-
-        return;
-    }
-
-    if (editingId) {
-        const index = appData.rentals.findIndex(
-            r => r.id === editingId
-        );
-
-        if (index === -1) {
-            return showToast(
-                "Rental no longer exists.",
-                "error"
-            );
-        }
-
-        appData.rentals[index] = {
-            ...appData.rentals[index],
-            ...data
-        };
-
-        showToast(
-            "Rental updated successfully",
-            "success"
-        );
-    } else {
-        appData.rentals.push({
-            id: createId(),
-            ...data
-        });
-
-        showToast(
-            "Rental created successfully",
-            "success"
-        );
-    }
-
-    syncVehicleStatuses(false);
-
-    saveData();
-
-    renderAllTables();
-    updateDashboard();
-
-    closeModal("rentalModal");
-}
-
-function savePayment() {
-    const form = document.getElementById("paymentForm");
-
-    if (!form) return;
-
-    const data = {
-        rental_id: form.paymentRental.value,
-
-        amount: Number.parseFloat(
-            form.paymentAmount.value
-        ),
-
-        payment_date: form.paymentDate.value,
-
-        payment_method: form.paymentMethod.value,
-
-        status: form.paymentStatus.value
-    };
-
-    if (!data.rental_id) {
-        showFormError(
-            form,
-            "Please select a rental.",
-            form.paymentRental
-        );
-
-        return;
-    }
-
-    if (
-        !Number.isFinite(data.amount) ||
-        data.amount <= 0
-    ) {
-        showFormError(
-            form,
-            "Payment amount must be greater than ₹0.",
-            form.paymentAmount
-        );
-
-        return;
-    }
-
-    if (!data.payment_date) {
-        showFormError(
-            form,
-            "Payment date is required.",
-            form.paymentDate
-        );
-
-        return;
-    }
-
-    if (!data.payment_method) {
-        showFormError(
-            form,
-            "Please select a payment method.",
-            form.paymentMethod
-        );
-
-        return;
-    }
-
-    if (
-        !appData.rentals.some(
-            r => r.id === data.rental_id
-        )
-    ) {
-        showFormError(
-            form,
-            "Selected rental no longer exists.",
-            form.paymentRental
-        );
-
-        return;
-    }
-
-    if (editingId) {
-        const index = appData.payments.findIndex(
-            p => p.id === editingId
-        );
-
-        if (index === -1) {
-            return showToast(
-                "Payment no longer exists.",
-                "error"
-            );
-        }
-
-        appData.payments[index] = {
-            ...appData.payments[index],
-            ...data
-        };
-
-        upsertPaymentTransaction(
-            appData.payments[index]
-        );
-
-        showToast(
-            "Payment updated successfully",
-            "success"
-        );
-    } else {
-        const payment = {
-            id: createId(),
-            ...data
-        };
-
-        appData.payments.push(payment);
-
-        appData.transactions.push(
-            makePaymentTransaction(payment)
-        );
-
-        showToast(
-            "Payment recorded successfully",
-            "success"
-        );
-    }
-
-    saveData();
-
-    renderPaymentsTable();
-    renderTransactionsTable();
-    updateDashboard();
-
-    closeModal("paymentModal");
-}
-function upsertPaymentTransaction(payment) {
-    let transaction = appData.transactions.find(
-        t => t.payment_id === payment.id
-    );
-
-    if (!transaction) {
-        transaction = makePaymentTransaction(payment);
-        appData.transactions.push(transaction);
-    } else {
-        Object.assign(transaction, {
-            type: "payment",
-            reference: payment.rental_id,
-            date: payment.payment_date,
-            amount: payment.amount,
-            status: payment.status,
-            payment_id: payment.id
-        });
     }
 }
 
-/* ------------------------------------------------------------
-   DROPDOWNS
-   ------------------------------------------------------------ */
-function populateRentalDropdowns(currentVehicleId = null) {
-    const customerSelect =
-        document.getElementById("rentalCustomer");
 
-    const vehicleSelect =
-        document.getElementById("rentalVehicle");
+/* =========================================================
+   RENDER ALL
+========================================================= */
 
-    if (customerSelect) {
-        customerSelect.innerHTML =
-            '<option value="">Select customer</option>';
+function renderAll() {
 
-        appData.customers.forEach(customer => {
-            const option = new Option(
-                customer.full_name,
-                customer.id
-            );
+    renderCustomers();
 
-            customerSelect.add(option);
-        });
-    }
+    renderVehicles();
 
-    if (vehicleSelect) {
-        vehicleSelect.innerHTML =
-            '<option value="">Select vehicle</option>';
+    renderRentals();
 
-        appData.vehicles.forEach(vehicle => {
-            const active = appData.rentals.some(
-                r =>
-                    r.vehicle_id === vehicle.id &&
-                    r.status === "active"
-            );
+    renderPayments();
 
-            const unavailable =
-                vehicle.availability_status === "maintenance" ||
-                (
-                    active &&
-                    vehicle.id !== currentVehicleId
-                );
-
-            const label =
-                `${vehicle.license_plate} — ${vehicle.model}` +
-                (
-                    vehicle.availability_status ===
-                    "maintenance"
-                        ? " · Maintenance"
-                        : active &&
-                          vehicle.id !== currentVehicleId
-                            ? " · Rented"
-                            : ""
-                );
-
-            const option = new Option(
-                label,
-                vehicle.id
-            );
-
-            option.disabled = unavailable;
-
-            vehicleSelect.add(option);
-        });
-    }
+    renderTransactions();
 }
 
-function populatePaymentDropdowns(currentRentalId = null) {
-    const rentalSelect =
-        document.getElementById("paymentRental");
 
-    if (!rentalSelect) return;
+/* =========================================================
+   CUSTOMERS TABLE
+========================================================= */
 
-    rentalSelect.innerHTML =
-        '<option value="">Select rental</option>';
+function renderCustomers() {
 
-    appData.rentals.forEach(rental => {
-        const customer = appData.customers.find(
-            c => c.id === rental.customer_id
-        );
-
-        const vehicle = appData.vehicles.find(
-            v => v.id === rental.vehicle_id
-        );
-
-        const option = new Option(
-            `${shortId(rental.id)} — ` +
-            `${customer?.full_name || "Unknown"} ` +
-            `(${vehicle?.license_plate || "Unknown"})` +
-            (
-                rental.status !== "active"
-                    ? ` · ${capitalize(rental.status)}`
-                    : ""
-            ),
-            rental.id
-        );
-
-        rentalSelect.add(option);
-    });
-
-    if (currentRentalId) {
-        rentalSelect.value = currentRentalId;
-    }
-}
-
-/* ------------------------------------------------------------
-   SEARCH + FILTERS
-   ------------------------------------------------------------ */
-function setupSearchAndFilters() {
-    document
-        .getElementById("customerSearch")
-        ?.addEventListener(
-            "input",
-            renderCustomersTable
-        );
-
-    document
-        .getElementById("vehicleSearch")
-        ?.addEventListener(
-            "input",
-            renderVehiclesTable
-        );
-
-    document
-        .getElementById("vehicleStatusFilter")
-        ?.addEventListener(
-            "change",
-            renderVehiclesTable
-        );
-
-    document
-        .getElementById("rentalSearch")
-        ?.addEventListener(
-            "input",
-            renderRentalsTable
-        );
-
-    document
-        .getElementById("rentalStatusFilter")
-        ?.addEventListener(
-            "change",
-            renderRentalsTable
-        );
-
-    document
-        .getElementById("paymentSearch")
-        ?.addEventListener(
-            "input",
-            renderPaymentsTable
-        );
-
-    document
-        .getElementById("paymentStatusFilter")
-        ?.addEventListener(
-            "change",
-            renderPaymentsTable
-        );
-
-    document
-        .getElementById("transactionSearch")
-        ?.addEventListener(
-            "input",
-            renderTransactionsTable
-        );
-}
-
-function setupGlobalSearch() {
-    const input =
-        document.getElementById("globalSearch");
-
-    input?.addEventListener("keydown", event => {
-        if (event.key !== "Enter") return;
-
-        const query =
-            input.value.trim().toLowerCase();
-
-        if (!query) return;
-
-        const targets = [
-            [
-                "customers",
-                appData.customers.some(c =>
-                    `${c.full_name} ${c.email} ${c.phone}`
-                        .toLowerCase()
-                        .includes(query)
-                )
-            ],
-
-            [
-                "vehicles",
-                appData.vehicles.some(v =>
-                    `${v.license_plate} ${v.model} ${v.type}`
-                        .toLowerCase()
-                        .includes(query)
-                )
-            ],
-
-            [
-                "rentals",
-                appData.rentals.some(r =>
-                    `${r.id} ${r.status}`
-                        .toLowerCase()
-                        .includes(query)
-                )
-            ],
-
-            [
-                "payments",
-                appData.payments.some(p =>
-                    `${p.id} ${p.rental_id} ${p.payment_method}`
-                        .toLowerCase()
-                        .includes(query)
-                )
-            ]
-        ];
-
-        const match = targets.find(
-            ([, found]) => found
-        );
-
-        if (!match) {
-            return showToast(
-                "No matching record found.",
-                "warning"
-            );
-        }
-
-        showSection(match[0]);
-
-        const field = document.getElementById(
-            `${match[0].slice(0, -1)}Search`
-        );
-
-        if (field) {
-            field.value = query;
-            field.dispatchEvent(
-                new Event("input")
-            );
-        }
-    });
-}
-
-/* ------------------------------------------------------------
-   TABLE RENDERERS
-   ------------------------------------------------------------ */
-function renderAllTables() {
-    renderCustomersTable();
-    renderVehiclesTable();
-    renderRentalsTable();
-    renderPaymentsTable();
-    renderTransactionsTable();
-    renderDashboardPayments();
-}
-
-function renderCustomersTable() {
     const tbody =
         document.querySelector(
             "#customersTable tbody"
         );
 
-    if (!tbody) return;
 
-    const query =
-        valueOf("customerSearch").toLowerCase();
+    if (!tbody) {
+        return;
+    }
 
-    const filtered =
-        appData.customers.filter(c =>
-            `${c.full_name} ${c.email} ${c.phone} ${c.license_number}`
-                .toLowerCase()
-                .includes(query)
+
+    const search =
+        value(
+            "customerSearch"
+        ).toLowerCase();
+
+
+    const rows =
+        appData.customers.filter(
+            customer =>
+                `${customer.id} ${customer.full_name} ${customer.phone} ${customer.email}`
+                    .toLowerCase()
+                    .includes(search)
         );
 
-    if (!filtered.length) {
-        setTableEmpty(
+
+    if (!rows.length) {
+
+        emptyTable(
             tbody,
-            true,
             5,
             "No customers found"
         );
@@ -1432,92 +1798,124 @@ function renderCustomersTable() {
         return;
     }
 
-    tbody.innerHTML = filtered
-        .map(c => `
+
+    tbody.innerHTML =
+        rows.map(
+            customer => `
+
             <tr>
-                <td>
-                    <div class="table-person">
-                        <span class="table-avatar">
-                            ${initials(c.full_name)}
-                        </span>
-
-                        <div>
-                            <strong>
-                                ${escapeHTML(c.full_name)}
-                            </strong>
-
-                            <small>
-                                ${escapeHTML(c.license_number)}
-                            </small>
-                        </div>
-                    </div>
-                </td>
 
                 <td>
-                    ${escapeHTML(c.email)}
-                </td>
-
-                <td>
-                    ${escapeHTML(c.phone)}
-                </td>
-
-                <td>
-                    ${escapeHTML(
-                        truncate(c.address, 34)
+                    #${escapeHTML(
+                        customer.id
                     )}
                 </td>
 
                 <td>
+                    ${escapeHTML(
+                        customer.full_name
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        customer.phone
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        customer.email
+                    )}
+                </td>
+
+                <td>
+
                     <div class="action-buttons">
+
                         <button
                             class="action-button"
-                            onclick="editCustomer('${safeAttr(c.id)}')"
-                            title="Edit"
+                            onclick="editCustomer('${safeAttr(customer.id)}')"
                         >
                             <i class="fa-solid fa-pen"></i>
                         </button>
 
                         <button
                             class="action-button danger-action"
-                            onclick="deleteCustomer('${safeAttr(c.id)}')"
-                            title="Delete"
+                            onclick="deleteCustomer('${safeAttr(customer.id)}')"
                         >
                             <i class="fa-solid fa-trash"></i>
                         </button>
+
                     </div>
+
                 </td>
+
             </tr>
-        `)
-        .join("");
+
+        `
+        ).join("");
 }
 
-function renderVehiclesTable() {
+
+/* =========================================================
+   VEHICLES TABLE
+========================================================= */
+
+function renderVehicles() {
+
     const tbody =
         document.querySelector(
             "#vehiclesTable tbody"
         );
 
-    if (!tbody) return;
 
-    const query =
-        valueOf("vehicleSearch").toLowerCase();
+    if (!tbody) {
+        return;
+    }
 
-    const status =
-        valueOf("vehicleStatusFilter");
 
-    const filtered =
-        appData.vehicles.filter(v =>
-            `${v.license_plate} ${v.model} ${v.type}`
-                .toLowerCase()
-                .includes(query) &&
-            (!status ||
-                v.availability_status === status)
+    const search =
+        value(
+            "vehicleSearch"
+        ).toLowerCase();
+
+
+    const filter =
+        value(
+            "vehicleStatusFilter"
         );
 
-    if (!filtered.length) {
-        setTableEmpty(
+
+    const rows =
+        appData.vehicles.filter(
+            vehicle => {
+
+                const matchesSearch =
+                    `${vehicle.id} ${vehicle.model} ${vehicle.type}`
+                        .toLowerCase()
+                        .includes(search);
+
+
+                const matchesFilter =
+                    !filter ||
+                    filter === "all" ||
+                    vehicle.availability_status ===
+                        filter;
+
+
+                return (
+                    matchesSearch &&
+                    matchesFilter
+                );
+            }
+        );
+
+
+    if (!rows.length) {
+
+        emptyTable(
             tbody,
-            true,
             7,
             "No vehicles found"
         );
@@ -1525,106 +1923,166 @@ function renderVehiclesTable() {
         return;
     }
 
-    tbody.innerHTML = filtered
-        .map(v => `
+
+    tbody.innerHTML =
+        rows.map(
+            vehicle => `
+
             <tr>
-                <td>
-                    <strong class="plate-pill">
-                        ${escapeHTML(v.license_plate)}
-                    </strong>
-                </td>
 
                 <td>
-                    <strong>
-                        ${escapeHTML(v.model)}
-                    </strong>
-                </td>
-
-                <td>
-                    ${v.year || "—"}
-                </td>
-
-                <td>
-                    ${capitalize(v.type)}
-                </td>
-
-                <td>
-                    ₹${Number(v.daily_rate)
-                        .toLocaleString("en-IN")}
-                </td>
-
-                <td>
-                    ${statusBadge(
-                        v.availability_status
+                    #${escapeHTML(
+                        vehicle.id
                     )}
                 </td>
 
                 <td>
+                    ${escapeHTML(
+                        capitalize(
+                            vehicle.type
+                        )
+                    )}
+                </td>
+
+                <td>
+                    ${escapeHTML(
+                        vehicle.model
+                    )}
+                </td>
+
+                <td>
+                    ₹${Number(
+                        vehicle.daily_rate
+                    ).toLocaleString(
+                        "en-IN"
+                    )}
+                </td>
+
+                <td>
+                    ${badge(
+                        vehicle.availability_status
+                    )}
+                </td>
+
+                <td>
+
                     <div class="action-buttons">
+
                         <button
                             class="action-button"
-                            onclick="editVehicle('${safeAttr(v.id)}')"
-                            title="Edit"
+                            onclick="editVehicle('${safeAttr(vehicle.id)}')"
                         >
                             <i class="fa-solid fa-pen"></i>
                         </button>
 
                         <button
                             class="action-button danger-action"
-                            onclick="deleteVehicle('${safeAttr(v.id)}')"
-                            title="Delete"
+                            onclick="deleteVehicle('${safeAttr(vehicle.id)}')"
                         >
                             <i class="fa-solid fa-trash"></i>
                         </button>
+
                     </div>
+
                 </td>
+
             </tr>
-        `)
-        .join("");
+
+        `
+        ).join("");
 }
 
-function renderRentalsTable() {
+
+/* =========================================================
+   RENTALS TABLE
+========================================================= */
+
+function renderRentals() {
+
     const tbody =
         document.querySelector(
             "#rentalsTable tbody"
         );
 
-    if (!tbody) return;
 
-    const query =
-        valueOf("rentalSearch").toLowerCase();
+    if (!tbody) {
 
-    const status =
-        valueOf("rentalStatusFilter");
+        console.error(
+            "Rental table body not found. Expected #rentalsTable tbody"
+        );
 
-    const filtered =
-        appData.rentals.filter(r => {
-            const customer =
-                appData.customers.find(
-                    c => c.id === r.customer_id
+        return;
+    }
+
+
+    const search =
+        value(
+            "rentalSearch"
+        ).toLowerCase();
+
+
+    const filter =
+        value(
+            "rentalStatusFilter"
+        ).toLowerCase();
+
+
+    const rows =
+        appData.rentals.filter(
+            rental => {
+
+                const customer =
+                    appData.customers.find(
+                        item =>
+                            item.id ===
+                            rental.customer_id
+                    );
+
+
+                const vehicle =
+                    appData.vehicles.find(
+                        item =>
+                            item.id ===
+                            rental.vehicle_id
+                    );
+
+
+                const searchableText =
+                    `${rental.id} ${customer?.full_name || ""} ${vehicle?.model || ""} ${vehicle?.type || ""} ${rental.customer_id} ${rental.vehicle_id}`
+                        .toLowerCase();
+
+
+                const matchesSearch =
+                    searchableText.includes(
+                        search
+                    );
+
+
+                const matchesFilter =
+                    !filter ||
+                    filter === "all" ||
+                    rental.status ===
+                        filter;
+
+
+                return (
+                    matchesSearch &&
+                    matchesFilter
                 );
+            }
+        );
 
-            const vehicle =
-                appData.vehicles.find(
-                    v => v.id === r.vehicle_id
-                );
 
-            return (
-                `${r.id} ${
-                    customer?.full_name || ""
-                } ${
-                    vehicle?.license_plate || ""
-                }`
-                    .toLowerCase()
-                    .includes(query) &&
-                (!status || r.status === status)
-            );
-        });
+    console.log(
+        "Rendering rentals:",
+        rows
+    );
 
-    if (!filtered.length) {
-        setTableEmpty(
+
+    if (!rows.length) {
+
+        emptyTable(
             tbody,
-            true,
             7,
             "No rentals found"
         );
@@ -1632,166 +2090,62 @@ function renderRentalsTable() {
         return;
     }
 
-    tbody.innerHTML = filtered
-        .map(r => {
-            const customer =
-                appData.customers.find(
-                    c => c.id === r.customer_id
-                );
 
-            const vehicle =
-                appData.vehicles.find(
-                    v => v.id === r.vehicle_id
-                );
+    tbody.innerHTML =
+        rows.map(
+            rental => `
 
-            return `
-                <tr>
-                    <td>
-                        <strong>
-                            #${escapeHTML(
-                                shortId(r.id)
-                            )}
-                        </strong>
-                    </td>
-
-                    <td>
-                        ${escapeHTML(
-                            customer?.full_name ||
-                            "Unknown"
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHTML(
-                            vehicle?.license_plate ||
-                            "Unknown"
-                        )}
-                    </td>
-
-                    <td>
-                        ${formatDate(
-                            r.rental_date
-                        )}
-                    </td>
-
-                    <td>
-                        ${formatDate(
-                            r.expected_return_date
-                        )}
-                    </td>
-
-                    <td>
-                        ${statusBadge(r.status)}
-                    </td>
-
-                    <td>
-                        <div class="action-buttons">
-                            <button
-                                class="action-button"
-                                onclick="editRental('${safeAttr(r.id)}')"
-                                title="Edit"
-                            >
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-
-                            <button
-                                class="action-button danger-action"
-                                onclick="deleteRental('${safeAttr(r.id)}')"
-                                title="Delete"
-                            >
-                                <i class="fa-solid fa-trash"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        })
-        .join("");
-}
-
-function renderPaymentsTable() {
-    const tbody =
-        document.querySelector(
-            "#paymentsTable tbody"
-        );
-
-    if (!tbody) return;
-
-    const query =
-        valueOf("paymentSearch").toLowerCase();
-
-    const status =
-        valueOf("paymentStatusFilter");
-
-    const filtered =
-        appData.payments.filter(p =>
-            `${p.rental_id} ${p.id} ${p.payment_method}`
-                .toLowerCase()
-                .includes(query) &&
-            (!status || p.status === status)
-        );
-
-    if (!filtered.length) {
-        setTableEmpty(
-            tbody,
-            true,
-            7,
-            "No payments found"
-        );
-
-        return;
-    }
-
-    tbody.innerHTML = filtered
-        .map(p => `
             <tr>
+
                 <td>
                     <strong>
                         #${escapeHTML(
-                            shortId(p.id)
+                            rental.id
                         )}
                     </strong>
                 </td>
 
                 <td>
                     ${escapeHTML(
-                        shortId(p.rental_id)
+                        getCustomerName(
+                            rental.customer_id
+                        )
                     )}
                 </td>
 
                 <td>
-                    <strong>
-                        ₹${Number(p.amount)
-                            .toLocaleString(
-                                "en-IN",
-                                {
-                                    minimumFractionDigits: 2
-                                }
-                            )}
-                    </strong>
-                </td>
-
-                <td>
-                    ${formatPaymentMethod(
-                        p.payment_method
+                    ${escapeHTML(
+                        getVehicleName(
+                            rental.vehicle_id
+                        )
                     )}
                 </td>
 
                 <td>
                     ${formatDate(
-                        p.payment_date
+                        rental.rental_date
                     )}
                 </td>
 
                 <td>
-                    ${statusBadge(p.status)}
+                    ${formatDate(
+                        rental.expected_return_date
+                    )}
                 </td>
 
                 <td>
+                    ${badge(
+                        rental.status
+                    )}
+                </td>
+
+                <td>
+
                     <div class="action-buttons">
+
                         <button
                             class="action-button"
-                            onclick="editPayment('${safeAttr(p.id)}')"
+                            onclick="editRental('${safeAttr(rental.id)}')"
                             title="Edit"
                         >
                             <i class="fa-solid fa-pen"></i>
@@ -1799,42 +2153,220 @@ function renderPaymentsTable() {
 
                         <button
                             class="action-button danger-action"
-                            onclick="deletePayment('${safeAttr(p.id)}')"
+                            onclick="deleteRental('${safeAttr(rental.id)}')"
                             title="Delete"
                         >
                             <i class="fa-solid fa-trash"></i>
                         </button>
+
                     </div>
+
                 </td>
+
             </tr>
-        `)
-        .join("");
+
+        `
+        ).join("");
 }
 
-function renderTransactionsTable() {
+
+/* =========================================================
+   PAYMENTS TABLE
+========================================================= */
+
+function renderPayments() {
+
+    const tbody =
+        document.querySelector(
+            "#paymentsTable tbody"
+        );
+
+
+    if (!tbody) {
+        return;
+    }
+
+
+    const search =
+        value(
+            "paymentSearch"
+        ).toLowerCase();
+
+
+    const filter =
+        value(
+            "paymentStatusFilter"
+        ).toLowerCase();
+
+
+    const rows =
+        appData.payments.filter(
+            payment => {
+
+                const searchableText =
+                    `${payment.id} ${payment.rental_id} ${payment.status}`
+                        .toLowerCase();
+
+
+                return (
+                    searchableText.includes(
+                        search
+                    ) &&
+                    (
+                        !filter ||
+                        filter === "all" ||
+                        payment.status ===
+                            filter
+                    )
+                );
+            }
+        );
+
+
+    if (!rows.length) {
+
+        emptyTable(
+            tbody,
+            7,
+            "No payments found"
+        );
+
+        return;
+    }
+
+
+    tbody.innerHTML =
+        rows.map(
+            payment => {
+
+                const transaction =
+                    appData.transactions
+                        .filter(
+                            item =>
+                                item.payment_id ===
+                                payment.id
+                        )
+                        .sort(
+                            (a, b) =>
+                                b.date.localeCompare(
+                                    a.date
+                                )
+                        )[0];
+
+
+                return `
+
+                    <tr>
+
+                        <td>
+                            #${escapeHTML(
+                                payment.id
+                            )}
+                        </td>
+
+                        <td>
+                            #${escapeHTML(
+                                payment.rental_id
+                            )}
+                        </td>
+
+                        <td>
+                            ₹${Number(
+                                payment.amount
+                            ).toLocaleString(
+                                "en-IN",
+                                {
+                                    minimumFractionDigits:
+                                        2
+                                }
+                            )}
+                        </td>
+
+                        <td>
+                            ${formatDate(
+                                transaction?.date
+                            )}
+                        </td>
+
+                        <td>
+                            ${escapeHTML(
+                                transaction?.payment_method ||
+                                "—"
+                            )}
+                        </td>
+
+                        <td>
+                            ${badge(
+                                payment.status
+                            )}
+                        </td>
+
+                        <td>
+
+                            <div class="action-buttons">
+
+                                <button
+                                    class="action-button"
+                                    onclick="editPayment('${safeAttr(payment.id)}')"
+                                >
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+
+                                <button
+                                    class="action-button danger-action"
+                                    onclick="deletePayment('${safeAttr(payment.id)}')"
+                                >
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+
+                            </div>
+
+                        </td>
+
+                    </tr>
+
+                `;
+            }
+        ).join("");
+}
+
+
+/* =========================================================
+   TRANSACTIONS TABLE
+========================================================= */
+
+function renderTransactions() {
+
     const tbody =
         document.querySelector(
             "#transactionsTable tbody"
         );
 
-    if (!tbody) return;
 
-    const query =
-        valueOf(
+    if (!tbody) {
+        return;
+    }
+
+
+    const search =
+        value(
             "transactionSearch"
         ).toLowerCase();
 
-    const filtered =
-        appData.transactions.filter(t =>
-            `${t.type} ${t.reference} ${t.status}`
-                .toLowerCase()
-                .includes(query)
+
+    const rows =
+        appData.transactions.filter(
+            transaction =>
+                `${transaction.id} ${transaction.payment_id} ${transaction.amount} ${transaction.payment_method}`
+                    .toLowerCase()
+                    .includes(search)
         );
 
-    if (!filtered.length) {
-        setTableEmpty(
+
+    if (!rows.length) {
+
+        emptyTable(
             tbody,
-            true,
             6,
             "No transactions found"
         );
@@ -1842,790 +2374,875 @@ function renderTransactionsTable() {
         return;
     }
 
-    tbody.innerHTML = filtered
-        .map(t => `
+
+    tbody.innerHTML =
+        rows.map(
+            transaction => `
+
             <tr>
-                <td>
-                    <strong>
-                        #${escapeHTML(
-                            shortId(t.id)
-                        )}
-                    </strong>
-                </td>
 
                 <td>
-                    ${escapeHTML(
-                        capitalize(t.type)
+                    #${escapeHTML(
+                        transaction.id
                     )}
                 </td>
 
                 <td>
-                    ${escapeHTML(
-                        shortId(t.reference)
+                    #${escapeHTML(
+                        transaction.payment_id
                     )}
                 </td>
 
                 <td>
-                    ₹${Number(t.amount)
-                        .toLocaleString(
-                            "en-IN",
-                            {
-                                minimumFractionDigits: 2
-                            }
-                        )}
+                    ${formatDate(
+                        transaction.date
+                    )}
                 </td>
 
                 <td>
-                    ${formatDate(t.date)}
+                    ₹${Number(
+                        transaction.amount
+                    ).toLocaleString(
+                        "en-IN",
+                        {
+                            minimumFractionDigits:
+                                2
+                        }
+                    )}
                 </td>
 
                 <td>
-                    ${statusBadge(t.status)}
+                    ${badge(
+                        "success"
+                    )}
                 </td>
-            </tr>
-        `)
-        .join("");
-}
 
-function renderDashboardRentals() {
-    const tbody =
-        document.querySelector(
-            "#dashboardRentalsTable tbody"
-        );
-
-    if (!tbody) return;
-
-    const rows =
-        [...appData.rentals]
-            .sort((a, b) =>
-                String(b.rental_date).localeCompare(
-                    String(a.rental_date)
-                )
-            )
-            .slice(0, 5);
-
-    if (!rows.length) {
-        tbody.innerHTML = `
-            <tr>
-                <td
-                    colspan="6"
-                    class="dashboard-empty-row"
-                >
-                    No rental activity yet.
+                <td>
+                    —
                 </td>
+
             </tr>
-        `;
 
-        return;
-    }
-
-    tbody.innerHTML = rows
-        .map(r => {
-            const customer =
-                appData.customers.find(
-                    c => c.id === r.customer_id
-                );
-
-            const vehicle =
-                appData.vehicles.find(
-                    v => v.id === r.vehicle_id
-                );
-
-            return `
-                <tr>
-                    <td>
-                        <strong>
-                            #${escapeHTML(
-                                shortId(r.id)
-                            )}
-                        </strong>
-                    </td>
-
-                    <td>
-                        ${escapeHTML(
-                            customer?.full_name ||
-                            "Unknown"
-                        )}
-                    </td>
-
-                    <td>
-                        ${escapeHTML(
-                            vehicle?.model ||
-                            "Unknown"
-                        )}
-                    </td>
-
-                    <td>
-                        ${formatDate(
-                            r.rental_date
-                        )}
-                        →
-                        ${formatDate(
-                            r.expected_return_date
-                        )}
-                    </td>
-
-                    <td>
-                        ${statusBadge(r.status)}
-                    </td>
-
-                    <td>
-                        <div class="action-buttons">
-                            <button
-                                class="action-button"
-                                onclick="editRental('${safeAttr(r.id)}')"
-                                title="Edit rental"
-                            >
-                                <i class="fa-solid fa-pen"></i>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `;
-        })
-        .join("");
+        `
+        ).join("");
 }
 
-function renderDashboardPayments() {
-    const tbody =
-        document.querySelector(
-            "#dashboardPaymentsTable tbody"
-        );
 
-    if (!tbody) return;
+/* =========================================================
+   SEARCH AND FILTER
+========================================================= */
 
-    const rows =
-        [...appData.payments]
-            .sort((a, b) =>
-                String(b.payment_date).localeCompare(
-                    String(a.payment_date)
-                )
-            )
-            .slice(0, 4);
+function setupSearch() {
 
-    if (!rows.length) {
-        tbody.innerHTML = `
-            <tr>
-                <td
-                    colspan="5"
-                    class="dashboard-empty-row"
-                >
-                    No payments yet.
-                </td>
-            </tr>
-        `;
+    const searchFields = [
 
-        return;
-    }
+        "customerSearch",
+        "vehicleSearch",
+        "rentalSearch",
+        "paymentSearch",
+        "transactionSearch"
+    ];
 
-    tbody.innerHTML = rows
-        .map(p => {
-            const rental =
-                appData.rentals.find(
-                    r => r.id === p.rental_id
+
+    searchFields.forEach(
+        id => {
+
+            document
+                .getElementById(id)
+                ?.addEventListener(
+                    "input",
+                    renderAll
                 );
+        }
+    );
 
-            const customer =
-                rental
-                    ? appData.customers.find(
-                        c =>
-                            c.id ===
-                            rental.customer_id
-                    )
-                    : null;
 
-            return `
-                <tr>
-                    <td>
-                        ${escapeHTML(
-                            customer?.full_name ||
-                            "Unknown"
-                        )}
-                    </td>
+    const filterFields = [
 
-                    <td>
-                        #${escapeHTML(
-                            shortId(p.rental_id)
-                        )}
-                    </td>
+        "vehicleStatusFilter",
+        "rentalStatusFilter",
+        "paymentStatusFilter"
+    ];
 
-                    <td>
-                        ₹${Number(p.amount)
-                            .toLocaleString(
-                                "en-IN"
-                            )}
-                    </td>
 
-                    <td>
-                        ${formatPaymentMethod(
-                            p.payment_method
-                        )}
-                    </td>
+    filterFields.forEach(
+        id => {
 
-                    <td>
-                        ${statusBadge(p.status)}
-                    </td>
-                </tr>
-            `;
-        })
-        .join("");
+            document
+                .getElementById(id)
+                ?.addEventListener(
+                    "change",
+                    renderAll
+                );
+        }
+    );
 }
 
-function setTableEmpty(
-    tbody,
-    isEmpty,
-    colspan,
-    message
-) {
-    if (!isEmpty) return;
 
-    tbody.innerHTML = `
-        <tr>
-            <td
-                colspan="${colspan}"
-                class="table-empty"
-            >
-                <div>
-                    <i class="fa-regular fa-folder-open"></i>
-                    <span>${escapeHTML(message)}</span>
-                </div>
-            </td>
-        </tr>
-    `;
-}
+/* =========================================================
+   EDIT
+========================================================= */
 
-/* ------------------------------------------------------------
-   EDIT ACTIONS
-   ------------------------------------------------------------ */
 function editCustomer(id) {
+
     const customer =
         appData.customers.find(
-            x => x.id === id
+            item =>
+                item.id ===
+                String(id)
         );
+
 
     if (customer) {
+
         openModal(
             "customerModal",
-            customer,
-            "customer"
+            "customer",
+            customer
         );
     }
 }
+
 
 function editVehicle(id) {
+
     const vehicle =
         appData.vehicles.find(
-            x => x.id === id
+            item =>
+                item.id ===
+                String(id)
         );
+
 
     if (vehicle) {
+
         openModal(
             "vehicleModal",
-            vehicle,
-            "vehicle"
+            "vehicle",
+            vehicle
         );
     }
 }
+
 
 function editRental(id) {
+
     const rental =
         appData.rentals.find(
-            x => x.id === id
+            item =>
+                item.id ===
+                String(id)
         );
+
 
     if (rental) {
+
         openModal(
             "rentalModal",
-            rental,
-            "rental"
+            "rental",
+            rental
         );
     }
 }
+
 
 function editPayment(id) {
+
     const payment =
         appData.payments.find(
-            x => x.id === id
+            item =>
+                item.id ===
+                String(id)
         );
+
 
     if (payment) {
+
         openModal(
             "paymentModal",
-            payment,
-            "payment"
+            "payment",
+            payment
         );
     }
 }
 
-/* ------------------------------------------------------------
-   DELETE ACTIONS + REFERENTIAL INTEGRITY
-   ------------------------------------------------------------ */
-function deleteCustomer(id) {
-    const referenced =
-        appData.rentals.some(
-            r => r.customer_id === id
-        );
 
-    if (referenced) {
-        return showToast(
-            "Customer cannot be deleted because a rental references this customer.",
-            "warning"
-        );
-    }
+/* =========================================================
+   DELETE CUSTOMER
+========================================================= */
+
+async function deleteCustomer(id) {
 
     if (
         !confirm(
-            "Delete this customer permanently?"
+            "Delete this customer?"
         )
     ) {
         return;
     }
 
-    appData.customers =
-        appData.customers.filter(
-            c => c.id !== id
+
+    try {
+
+        await api(
+            `/customers/${id}`,
+            {
+                method: "DELETE"
+            }
         );
 
-    saveData();
 
-    renderCustomersTable();
-    updateDashboard();
-
-    showToast(
-        "Customer deleted successfully",
-        "success"
-    );
-}
-
-function deleteVehicle(id) {
-    const referenced =
-        appData.rentals.some(
-            r => r.vehicle_id === id
+        showToast(
+            "Customer deleted.",
+            "success"
         );
 
-    if (referenced) {
-        return showToast(
-            "Vehicle cannot be deleted because a rental references this vehicle.",
-            "warning"
-        );
-    }
 
-    if (
-        !confirm(
-            "Delete this vehicle permanently?"
-        )
-    ) {
-        return;
-    }
+        await loadData();
 
-    appData.vehicles =
-        appData.vehicles.filter(
-            v => v.id !== id
-        );
+    } catch (error) {
 
-    saveData();
+        console.error(error);
 
-    renderVehiclesTable();
-    updateDashboard();
-
-    showToast(
-        "Vehicle deleted successfully",
-        "success"
-    );
-}
-
-function deleteRental(id) {
-    const referenced =
-        appData.payments.some(
-            p => p.rental_id === id
-        );
-
-    if (referenced) {
-        return showToast(
-            "Rental cannot be deleted because a payment references it. Delete the payment first.",
-            "warning"
-        );
-    }
-
-    if (
-        !confirm(
-            "Delete this rental permanently?"
-        )
-    ) {
-        return;
-    }
-
-    appData.rentals =
-        appData.rentals.filter(
-            r => r.id !== id
-        );
-
-    syncVehicleStatuses(false);
-
-    saveData();
-
-    renderAllTables();
-    updateDashboard();
-
-    showToast(
-        "Rental deleted successfully",
-        "success"
-    );
-}
-
-function deletePayment(id) {
-    const payment =
-        appData.payments.find(
-            p => p.id === id
-        );
-
-    if (!payment) {
-        return showToast(
-            "Payment no longer exists.",
+        showToast(
+            error.message,
             "error"
         );
     }
+}
+
+
+/* =========================================================
+   DELETE VEHICLE
+========================================================= */
+
+async function deleteVehicle(id) {
 
     if (
         !confirm(
-            "Delete this payment and its transaction record?"
+            "Delete this vehicle?"
         )
     ) {
         return;
     }
 
-    // Capture the legacy signature before removing
-    // the payment itself.
-    const legacyMatches = {
-        rental_id: payment.rental_id,
-        amount: Number(payment.amount),
-        date: payment.payment_date,
-        status: payment.status
-    };
 
-    appData.payments =
-        appData.payments.filter(
-            p => p.id !== id
+    try {
+
+        await api(
+            `/vehicles/${id}`,
+            {
+                method: "DELETE"
+            }
         );
 
-    appData.transactions =
-        appData.transactions.filter(t => {
-            if (t.payment_id === id) {
-                return false;
-            }
 
-            const legacy =
-                !t.payment_id &&
-                t.type === "payment" &&
-                t.reference ===
-                    legacyMatches.rental_id &&
-                Number(t.amount) ===
-                    legacyMatches.amount &&
-                t.date ===
-                    legacyMatches.date &&
-                t.status ===
-                    legacyMatches.status;
+        showToast(
+            "Vehicle deleted.",
+            "success"
+        );
 
-            return !legacy;
-        });
 
-    saveData();
+        await loadData();
 
-    renderPaymentsTable();
-    renderTransactionsTable();
-    updateDashboard();
+    } catch (error) {
 
-    showToast(
-        "Payment and linked transaction deleted",
-        "success"
-    );
-}
+        console.error(error);
 
-/* ------------------------------------------------------------
-   VEHICLE AVAILABILITY CONSISTENCY
-   ------------------------------------------------------------ */
-function syncVehicleStatuses(
-    showNotice = true
-) {
-    let changed = false;
-
-    appData.vehicles.forEach(vehicle => {
-        const activeRental =
-            appData.rentals.some(
-                r =>
-                    r.vehicle_id === vehicle.id &&
-                    r.status === "active"
-            );
-
-        const desired =
-            activeRental
-                ? "rented"
-                : (
-                    vehicle.availability_status ===
-                    "maintenance"
-                        ? "maintenance"
-                        : "available"
-                );
-
-        if (
-            vehicle.availability_status !==
-            desired
-        ) {
-            vehicle.availability_status =
-                desired;
-
-            changed = true;
-        }
-    });
-
-    if (changed) {
-        saveData();
-
-        if (showNotice) {
-            showToast(
-                "Fleet availability synchronized with active rentals.",
-                "success"
-            );
-        }
+        showToast(
+            error.message,
+            "error"
+        );
     }
 }
 
-/* ------------------------------------------------------------
+
+/* =========================================================
+   DELETE RENTAL
+========================================================= */
+
+async function deleteRental(id) {
+
+    if (
+        !confirm(
+            "Delete this rental?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        await api(
+            `/rentals/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+
+        showToast(
+            "Rental deleted.",
+            "success"
+        );
+
+
+        await loadData();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
+   DELETE PAYMENT
+========================================================= */
+
+async function deletePayment(id) {
+
+    if (
+        !confirm(
+            "Delete this payment and its transactions?"
+        )
+    ) {
+        return;
+    }
+
+
+    try {
+
+        await api(
+            `/payments/${id}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+
+        showToast(
+            "Payment deleted.",
+            "success"
+        );
+
+
+        await loadData();
+
+    } catch (error) {
+
+        console.error(error);
+
+        showToast(
+            error.message,
+            "error"
+        );
+    }
+}
+
+
+/* =========================================================
    DASHBOARD
-   ------------------------------------------------------------ */
+========================================================= */
+
 function updateDashboard() {
+
     const totalVehicles =
         appData.vehicles.length;
+
 
     const totalCustomers =
         appData.customers.length;
 
+
     const activeRentals =
         appData.rentals.filter(
-            r => r.status === "active"
+            rental =>
+                rental.status ===
+                "active"
         ).length;
 
-    const revenue =
-        appData.payments
-            .filter(p => p.status === "success")
-            .reduce(
-                (sum, p) =>
-                    sum + Number(p.amount || 0),
-                0
-            );
 
-    const completed =
+    const completedRentals =
         appData.rentals.filter(
-            r => r.status === "completed"
+            rental =>
+                rental.status ===
+                "completed"
         ).length;
 
-    const pending =
-        appData.payments.filter(
-            p => p.status === "pending"
-        ).length;
 
-    const overdue =
+    const overdueRentals =
         appData.rentals.filter(
-            r =>
-                r.status === "active" &&
-                dateOnlyToday() >
-                    r.expected_return_date
+            rental =>
+                rental.status ===
+                "overdue"
         ).length;
 
-    const available =
+
+    const availableVehicles =
         appData.vehicles.filter(
-            v =>
-                v.availability_status ===
+            vehicle =>
+                vehicle.availability_status ===
                 "available"
         ).length;
 
-    const rented =
+
+    const rentedVehicles =
         appData.vehicles.filter(
-            v =>
-                v.availability_status ===
+            vehicle =>
+                vehicle.availability_status ===
                 "rented"
         ).length;
 
-    const maintenance =
-        appData.vehicles.filter(
-            v =>
-                v.availability_status ===
-                "maintenance"
+
+    const totalRevenue =
+        appData.transactions.reduce(
+            (total, transaction) =>
+                total +
+                Number(
+                    transaction.amount || 0
+                ),
+            0
+        );
+
+
+    const pendingPayments =
+        appData.payments.filter(
+            payment =>
+                payment.status ===
+                    "pending" ||
+                payment.status ===
+                    "partial"
         ).length;
+
 
     setText(
         "totalVehicles",
         totalVehicles
     );
 
+
     setText(
         "totalCustomers",
         totalCustomers
     );
+
 
     setText(
         "activeRentals",
         activeRentals
     );
 
+
     setText(
         "totalRevenue",
-        `₹${revenue.toLocaleString(
-            "en-IN",
-            {
-                maximumFractionDigits: 0
-            }
+        `₹${totalRevenue.toLocaleString(
+            "en-IN"
         )}`
     );
 
-    setText(
-        "completedRentals",
-        completed
-    );
-
-    setText(
-        "pendingPayments",
-        pending
-    );
-
-    setText(
-        "overdueRentals",
-        overdue
-    );
 
     setText(
         "availableVehicles",
-        available
+        availableVehicles
     );
+
 
     setText(
         "availabilityTotal",
         totalVehicles
     );
 
+
     setText(
         "legendAvailable",
-        available
+        availableVehicles
     );
+
 
     setText(
         "legendRented",
-        rented
+        rentedVehicles
     );
+
 
     setText(
         "legendMaintenance",
-        maintenance
+        0
     );
 
-    const donut =
-        document.getElementById(
-            "availabilityDonut"
-        );
 
-    if (donut) {
-        const availableDeg =
-            totalVehicles
-                ? available /
-                      totalVehicles *
-                      360
-                : 0;
+    setText(
+        "completedRentals",
+        completedRentals
+    );
 
-        const rentedDeg =
-            totalVehicles
-                ? rented /
-                      totalVehicles *
-                      360
-                : 0;
 
-        donut.style.setProperty(
-            "--available-deg",
-            `${availableDeg}deg`
-        );
+    setText(
+        "pendingPayments",
+        pendingPayments
+    );
 
-        donut.style.setProperty(
-            "--rented-deg",
-            `${availableDeg + rentedDeg}deg`
-        );
-    }
 
-    [
+    setText(
+        "overdueRentals",
+        overdueRentals
+    );
+
+
+    const vehicleTypes = [
         "sedan",
         "suv",
         "hatchback",
         "van"
-    ].forEach(type => {
-        const id =
-            `type${capitalize(type)}`;
+    ];
 
-        setText(
-            id,
-            appData.vehicles.filter(
-                v =>
-                    String(v.type)
-                        .toLowerCase() ===
-                    type
-            ).length
-        );
-    });
 
-    renderDashboardRentals();
-    renderDashboardPayments();
+    vehicleTypes.forEach(
+        type => {
+
+            setText(
+                `type${capitalize(type)}`,
+                appData.vehicles.filter(
+                    vehicle =>
+                        String(
+                            vehicle.type
+                        ).toLowerCase() ===
+                        type
+                ).length
+            );
+        }
+    );
 }
 
-/* ------------------------------------------------------------
-   UTILITIES
-   ------------------------------------------------------------ */
-function valueOf(id) {
+
+/* =========================================================
+   HELPERS
+========================================================= */
+
+function bind(
+    id,
+    functionToRun
+) {
+
+    document
+        .getElementById(id)
+        ?.addEventListener(
+            "click",
+            functionToRun
+        );
+}
+
+
+function bindForm(
+    id,
+    functionToRun
+) {
+
+    document
+        .getElementById(id)
+        ?.addEventListener(
+            "submit",
+            functionToRun
+        );
+}
+
+
+function value(id) {
+
     return (
-        document.getElementById(id)?.value ||
+        document
+            .getElementById(id)
+            ?.value ||
         ""
     );
 }
 
-function setText(id, value) {
-    const el =
-        document.getElementById(id);
 
-    if (el) {
-        el.textContent = value;
+function setValue(
+    id,
+    newValue
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (element) {
+
+        element.value =
+            newValue ?? "";
     }
 }
 
-function shortId(id) {
-    return String(id ?? "").slice(
-        0,
-        8
-    );
+
+function setText(
+    id,
+    newValue
+) {
+
+    const element =
+        document.getElementById(
+            id
+        );
+
+
+    if (element) {
+
+        element.textContent =
+            newValue;
+    }
 }
 
-function initials(name) {
+
+function getCustomerName(
+    customerId
+) {
+
     return (
-        String(name || "A")
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map(x => x[0])
-            .join("")
-            .toUpperCase() ||
-        "A"
+        appData.customers.find(
+            customer =>
+                customer.id ===
+                String(
+                    customerId
+                )
+        )?.full_name ||
+        `Customer #${customerId}`
     );
 }
 
-function truncate(value, length) {
-    const s = String(value ?? "");
 
-    return s.length > length
-        ? `${s.slice(0, length)}…`
-        : s;
+function getVehicleName(
+    vehicleId
+) {
+
+    return (
+        appData.vehicles.find(
+            vehicle =>
+                vehicle.id ===
+                String(
+                    vehicleId
+                )
+        )?.model ||
+        `Vehicle #${vehicleId}`
+    );
 }
+
+
+function today() {
+
+    const date =
+        new Date();
+
+
+    return [
+
+        date.getFullYear(),
+
+        String(
+            date.getMonth() + 1
+        ).padStart(2, "0"),
+
+        String(
+            date.getDate()
+        ).padStart(2, "0")
+
+    ].join("-");
+}
+
+
+function formatDate(date) {
+
+    if (!date) {
+        return "—";
+    }
+
+
+    const parts =
+        String(date)
+            .slice(0, 10)
+            .split("-");
+
+
+    if (parts.length !== 3) {
+        return "—";
+    }
+
+
+    return new Date(
+        Number(parts[0]),
+        Number(parts[1]) - 1,
+        Number(parts[2])
+    ).toLocaleDateString(
+        "en-IN",
+        {
+            day: "2-digit",
+            month: "short",
+            year: "numeric"
+        }
+    );
+}
+
+
+function capitalize(text) {
+
+    const value =
+        String(
+            text || ""
+        );
+
+
+    if (!value) {
+        return "";
+    }
+
+
+    return (
+        value.charAt(0).toUpperCase() +
+        value.slice(1)
+    );
+}
+
+
+function normalizePaymentMethod(
+    method
+) {
+
+    const value =
+        String(
+            method || ""
+        ).toLowerCase();
+
+
+    if (value === "cash") {
+        return "Cash";
+    }
+
+
+    if (value === "card") {
+        return "Card";
+    }
+
+
+    if (value === "upi") {
+        return "UPI";
+    }
+
+
+    return method;
+}
+
+
+function badge(status) {
+
+    const value =
+        String(
+            status ||
+            "unknown"
+        ).toLowerCase();
+
+
+    let className =
+        "neutral";
+
+
+    if (
+        [
+            "available",
+            "active",
+            "success",
+            "completed"
+        ].includes(value)
+    ) {
+
+        className =
+            "success";
+    }
+
+
+    if (
+        [
+            "pending",
+            "partial",
+            "maintenance"
+        ].includes(value)
+    ) {
+
+        className =
+            "warning";
+    }
+
+
+    if (
+        [
+            "rented",
+            "overdue",
+            "failed",
+            "cancelled"
+        ].includes(value)
+    ) {
+
+        className =
+            "danger";
+    }
+
+
+    return `
+        <span class="badge badge-${className}">
+            ${escapeHTML(
+                capitalize(value)
+            )}
+        </span>
+    `;
+}
+
+
+function emptyTable(
+    tbody,
+    colspan,
+    message
+) {
+
+    tbody.innerHTML = `
+
+        <tr>
+
+            <td
+                colspan="${colspan}"
+                class="table-empty"
+            >
+                ${escapeHTML(
+                    message
+                )}
+            </td>
+
+        </tr>
+
+    `;
+}
+
 
 function safeAttr(value) {
-    return escapeHTML(value);
+
+    return escapeHTML(
+        String(value ?? "")
+    );
 }
 
+
 function escapeHTML(value) {
-    return String(value ?? "")
+
+    return String(
+        value ?? ""
+    )
         .replace(
             /&/g,
             "&amp;"
@@ -2648,290 +3265,166 @@ function escapeHTML(value) {
         );
 }
 
-function capitalize(value) {
-    const s = String(value || "");
 
-    return s
-        ? s.charAt(0).toUpperCase() +
-              s.slice(1)
-        : "";
-}
-
-function localDateInputValue(
-    date = new Date()
-) {
-    const y =
-        date.getFullYear();
-
-    const m =
-        String(
-            date.getMonth() + 1
-        ).padStart(2, "0");
-
-    const d =
-        String(
-            date.getDate()
-        ).padStart(2, "0");
-
-    return `${y}-${m}-${d}`;
-}
-
-function dateOnlyToday() {
-    return localDateInputValue();
-}
-
-function formatDate(value) {
-    if (!value) return "—";
-
-    const [y, m, d] =
-        String(value)
-            .split("-")
-            .map(Number);
-
-    if (!y || !m || !d) {
-        return "—";
-    }
-
-    return new Date(
-        y,
-        m - 1,
-        d
-    ).toLocaleDateString(
-        "en-IN",
-        {
-            day: "2-digit",
-            month: "short",
-            year: "numeric"
-        }
-    );
-}
-
-function formatPaymentMethod(
-    method
-) {
-    return escapeHTML(
-        {
-            cash: "Cash",
-            card: "Card",
-            upi: "UPI",
-            net_banking: "Net Banking"
-        }[method] ||
-            method ||
-            "—"
-    );
-}
-
-function statusBadge(status) {
-    const value =
-        String(
-            status || "unknown"
-        ).toLowerCase();
-
-    const map = {
-        available: "success",
-        active: "success",
-        success: "success",
-        completed: "success",
-        pending: "warning",
-        maintenance: "warning",
-        rented: "danger",
-        cancelled: "danger",
-        failed: "danger",
-        overdue: "danger"
-    };
-
-    return `
-        <span class="badge badge-${
-            map[value] || "neutral"
-        }">
-            ${escapeHTML(
-                capitalize(value)
-            )}
-        </span>
-    `;
-}
-
-function updateHeaderDate() {
-    const el =
-        document.getElementById(
-            "currentDate"
-        );
-
-    if (el) {
-        el.textContent =
-            new Date().toLocaleDateString(
-                "en-IN",
-                {
-                    weekday: "long",
-                    day: "2-digit",
-                    month: "short",
-                    year: "numeric"
-                }
-            );
-    }
-}
-
-/* ------------------------------------------------------------
-   NOTIFICATIONS + TOASTS
-   ------------------------------------------------------------ */
-function setupNotifications() {
-    document
-        .getElementById(
-            "notificationButton"
-        )
-        ?.addEventListener(
-            "click",
-            () => {
-                const overdue =
-                    appData.rentals.filter(
-                        r =>
-                            r.status ===
-                                "active" &&
-                            dateOnlyToday() >
-                                r.expected_return_date
-                    ).length;
-
-                const maintenance =
-                    appData.vehicles.filter(
-                        v =>
-                            v.availability_status ===
-                            "maintenance"
-                    ).length;
-
-                if (
-                    !overdue &&
-                    !maintenance
-                ) {
-                    return showToast(
-                        "Everything looks good — no new alerts.",
-                        "success"
-                    );
-                }
-
-                const parts = [];
-
-                if (overdue) {
-                    parts.push(
-                        `${overdue} overdue rental${
-                            overdue > 1
-                                ? "s"
-                                : ""
-                        }`
-                    );
-                }
-
-                if (maintenance) {
-                    parts.push(
-                        `${maintenance} vehicle${
-                            maintenance > 1
-                                ? "s"
-                                : ""
-                        } in maintenance`
-                    );
-                }
-
-                showToast(
-                    parts.join(" · "),
-                    "warning"
-                );
-            }
-        );
-}
+/* =========================================================
+   TOAST
+========================================================= */
 
 function showToast(
     message,
     type = "success"
 ) {
+
     let container =
         document.getElementById(
             "toastContainer"
         );
 
+
     if (!container) {
+
         container =
             document.createElement(
                 "div"
             );
 
+
         container.id =
             "toastContainer";
+
+
+        container.style.position =
+            "fixed";
+
+
+        container.style.right =
+            "20px";
+
+
+        container.style.bottom =
+            "20px";
+
+
+        container.style.zIndex =
+            "9999";
+
 
         document.body.appendChild(
             container
         );
     }
 
-    const icons = {
-        success:
-            "fa-circle-check",
-        error:
-            "fa-circle-xmark",
-        warning:
-            "fa-triangle-exclamation"
-    };
 
     const toast =
         document.createElement(
             "div"
         );
 
-    toast.className =
-        `toast toast-${type}`;
 
-    toast.innerHTML = `
-        <i class="fa-solid ${
-            icons[type] ||
-            icons.success
-        }"></i>
+    toast.textContent =
+        message;
 
-        <span>
-            ${escapeHTML(message)}
-        </span>
 
-        <button
-            aria-label="Dismiss"
-        >
-            <i class="fa-solid fa-xmark"></i>
-        </button>
-    `;
+    toast.style.padding =
+        "12px 18px";
 
-    toast
-        .querySelector("button")
-        ?.addEventListener(
-            "click",
-            () => toast.remove()
-        );
+
+    toast.style.marginTop =
+        "10px";
+
+
+    toast.style.borderRadius =
+        "8px";
+
+
+    toast.style.background =
+        type === "error"
+            ? "#b42318"
+            : "#16794c";
+
+
+    toast.style.color =
+        "white";
+
+
+    toast.style.fontSize =
+        "14px";
+
 
     container.appendChild(
         toast
     );
 
-    requestAnimationFrame(() => {
-        toast.classList.add(
-            "show"
-        );
-    });
 
-    setTimeout(() => {
-        toast.classList.remove(
-            "show"
-        );
-
-        setTimeout(
-            () => toast.remove(),
-            250
-        );
-    }, 3600);
+    setTimeout(
+        () => {
+            toast.remove();
+        },
+        3500
+    );
 }
 
-/* Expose inline-action handlers used by rendered table buttons. */
-Object.assign(window, {
-    editCustomer,
-    deleteCustomer,
-    editVehicle,
-    deleteVehicle,
-    editRental,
-    deleteRental,
-    editPayment,
-    deletePayment
-});
+
+/* =========================================================
+   HEADER DATE
+========================================================= */
+
+function updateHeaderDate() {
+
+    const element =
+        document.getElementById(
+            "currentDate"
+        );
+
+
+    if (element) {
+
+        element.textContent =
+            new Date()
+                .toLocaleDateString(
+                    "en-IN",
+                    {
+                        weekday:
+                            "long",
+
+                        day:
+                            "2-digit",
+
+                        month:
+                            "short",
+
+                        year:
+                            "numeric"
+                    }
+                );
+    }
+}
+
+
+/* =========================================================
+   MAKE FUNCTIONS AVAILABLE TO HTML
+========================================================= */
+
+window.editCustomer =
+    editCustomer;
+
+window.deleteCustomer =
+    deleteCustomer;
+
+window.editVehicle =
+    editVehicle;
+
+window.deleteVehicle =
+    deleteVehicle;
+
+window.editRental =
+    editRental;
+
+window.deleteRental =
+    deleteRental;
+
+window.editPayment =
+    editPayment;
+
+window.deletePayment =
+    deletePayment;
