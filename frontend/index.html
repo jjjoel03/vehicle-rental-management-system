@@ -1,0 +1,1598 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <meta
+        name="description"
+        content="Vehicle Rental Management System - Manage customers, vehicles, rentals and payments."
+    >
+
+    <meta name="author" content="Vehicle Rental Management System">
+
+    <title>DrivePrime — Vehicle Rental Management System</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap"
+        rel="stylesheet"
+    >
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <link rel="stylesheet" href="css/style.css">
+
+</head>
+
+
+<body>
+
+
+       <!-- =========================================================
+         LOGIN / REGISTER OVERLAY
+         Customer tab: sign in + "Create an account".
+         Admin tab: sign in only (admins cannot register).
+         ========================================================= -->
+
+    <div id="loginOverlay" style="position:fixed;inset:0;background:#0f172a;display:flex;align-items:center;justify-content:center;z-index:99999;">
+
+        <form id="loginForm" style="background:#1e293b;padding:32px;border-radius:12px;width:320px;box-shadow:0 10px 30px rgba(0,0,0,0.4);">
+            <h2 style="color:#f8fafc;margin-bottom:4px;">DrivePrime</h2>
+
+            <div class="auth-tabs" role="tablist" aria-label="Sign in as">
+                <button type="button" id="tabCustomer" class="auth-tab active" role="tab" aria-selected="true">Customer</button>
+                <button type="button" id="tabAdmin" class="auth-tab" role="tab" aria-selected="false">Admin</button>
+            </div>
+
+            <p id="loginSubtitle" style="color:#94a3b8;margin-bottom:20px;font-size:0.85rem;">Customer sign in</p>
+
+            <input
+                id="loginEmail"
+                type="email"
+                placeholder="Email"
+                required
+                autocomplete="username"
+                style="width:100%;padding:10px;margin-bottom:10px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#f8fafc;box-sizing:border-box;"
+            >
+
+            <input
+                id="loginPassword"
+                type="password"
+                placeholder="Password"
+                required
+                autocomplete="current-password"
+                style="width:100%;padding:10px;margin-bottom:14px;border-radius:6px;border:1px solid #334155;background:#0f172a;color:#f8fafc;box-sizing:border-box;"
+            >
+
+            <button type="submit" class="btn btn-primary" style="width:100%;">Login</button>
+
+            <p id="loginError" style="color:#f87171;margin-top:10px;font-size:0.85rem;"></p>
+            <p id="loginNotice" class="auth-notice"></p>
+
+            <p id="registerPrompt" class="auth-switch">
+                New to DrivePrime?
+                <button type="button" id="showRegisterBtn" class="auth-link">Create an account</button>
+            </p>
+        </form>
+
+
+        <form id="registerForm" class="auth-card" style="display:none;">
+            <h2>Create account</h2>
+            <p class="auth-sub">Customer registration</p>
+
+            <input id="registerName" class="auth-input" type="text" placeholder="Full name" required maxlength="100" autocomplete="name">
+            <input id="registerEmail" class="auth-input" type="email" placeholder="Email" required maxlength="100" autocomplete="email">
+            <input id="registerPhone" class="auth-input" type="tel" placeholder="Phone (e.g. 9876543210)" required maxlength="15" autocomplete="tel">
+            <input id="registerPassword" class="auth-input" type="password" placeholder="Password (min 6 characters)" required minlength="6" autocomplete="new-password">
+            <input id="registerConfirm" class="auth-input" type="password" placeholder="Confirm password" required minlength="6" autocomplete="new-password">
+
+            <button id="registerSubmitBtn" type="submit" class="btn btn-primary" style="width:100%;">Create account</button>
+
+            <p id="registerError" class="auth-error" role="alert"></p>
+
+            <p class="auth-switch">
+                Already have an account?
+                <button type="button" id="showLoginBtn" class="auth-link">Sign in</button>
+            </p>
+        </form>
+
+    </div>
+
+    <!-- =========================================================
+         APPLICATION WRAPPER
+         ========================================================= -->
+
+    <div class="app-container" id="appContainer" style="display:none;">
+
+
+        <!-- =====================================================
+             SIDEBAR
+             ===================================================== -->
+
+        <aside class="sidebar" id="sidebar">
+
+            <div class="sidebar-header">
+
+                <div class="logo">
+                    <div class="logo-mark">
+                        <i class="fa-solid fa-car-side"></i>
+                    </div>
+
+                    <div class="logo-text">
+                        <h2>DrivePrime</h2>
+                        <span>Vehicle Rental System</span>
+                    </div>
+                </div>
+
+                <button
+                    class="sidebar-close"
+                    id="sidebarClose"
+                    type="button"
+                    aria-label="Close navigation"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <nav class="sidebar-nav" aria-label="Main navigation">
+
+                <p class="nav-heading">MAIN MENU</p>
+
+                <button class="nav-item active" data-section="dashboard" type="button">
+                    <span class="nav-icon">
+                        <i class="fa-solid fa-house"></i>
+                    </span>
+                    <span>Dashboard</span>
+                </button>
+
+                <button class="nav-item" data-section="customers" type="button">
+                    <span class="nav-icon">
+                        <i class="fa-solid fa-users"></i>
+                    </span>
+                    <span>Customers</span>
+                </button>
+
+                <button class="nav-item" data-section="vehicles" type="button">
+                    <span class="nav-icon">
+                        <i class="fa-solid fa-car"></i>
+                    </span>
+                    <span>Vehicles</span>
+                </button>
+
+
+                <p class="nav-heading">RENTAL MANAGEMENT</p>
+
+                <button class="nav-item" data-section="rentals" type="button">
+                    <span class="nav-icon">
+                        <i class="fa-solid fa-calendar-check"></i>
+                    </span>
+                    <span>Rentals</span>
+                </button>
+
+                <button class="nav-item" data-section="payments" type="button">
+                    <span class="nav-icon">
+                        <i class="fa-solid fa-credit-card"></i>
+                    </span>
+                    <span>Payments</span>
+                </button>
+
+                <button class="nav-item" data-section="transactions" type="button">
+                    <span class="nav-icon">
+                        <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                    </span>
+                    <span>Transactions</span>
+                </button>
+
+            </nav>
+
+
+            <div class="sidebar-footer">
+
+                <div class="system-status">
+                    <span class="status-dot"></span>
+
+                    <div>
+                        <strong>System Online</strong>
+                        <small>Database connected</small>
+                    </div>
+                </div>
+
+                <button
+                    id="logoutBtn"
+                    type="button"
+                    class="btn btn-secondary"
+                    style="width:100%;margin-top:10px;"
+                >
+                    <i class="fa-solid fa-right-from-bracket"></i>
+                    Logout
+                </button>
+
+            </div>
+
+        </aside>
+
+
+        <!-- =====================================================
+             MAIN CONTENT
+             ===================================================== -->
+
+        <div class="main-wrapper">
+
+
+            <header class="top-header">
+
+                <div class="header-left">
+
+                    <button
+                        class="menu-toggle"
+                        id="menuToggle"
+                        type="button"
+                        aria-label="Open navigation"
+                    >
+                        <i class="fa-solid fa-bars"></i>
+                    </button>
+
+                    <div class="page-heading">
+                        <span class="breadcrumb">DrivePrime / Operations</span>
+                        <h1 id="pageTitle">Dashboard</h1>
+                    </div>
+
+                </div>
+
+
+                <div class="header-right">
+
+                    <label class="global-search" aria-label="Global search">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input
+                            id="globalSearch"
+                            type="search"
+                            placeholder="Search anything..."
+                            autocomplete="off"
+                        >
+                    </label>
+
+                    <div class="header-date">
+                        <i class="fa-regular fa-calendar"></i>
+                        <span id="currentDate">—</span>
+                    </div>
+
+                    <button
+                        class="header-button"
+                        id="notificationButton"
+                        type="button"
+                        aria-label="Notifications"
+                        title="Notifications"
+                    >
+                        <i class="fa-regular fa-bell"></i>
+                        <span class="notification-dot"></span>
+                    </button>
+
+                    <div class="user-profile">
+                        <div class="avatar">AD</div>
+
+                        <div class="user-info">
+                            <strong>Admin</strong>
+                            <span>Administrator</span>
+                        </div>
+
+                        <i class="fa-solid fa-chevron-down profile-chevron"></i>
+                    </div>
+
+                </div>
+
+            </header>
+
+
+            <main class="content-area">
+
+
+                <!-- DASHBOARD SECTION -->
+
+                <section id="dashboard" class="content-section active-section">
+
+                    <div class="dashboard-hero">
+
+                        <div>
+
+                            <span class="eyebrow">WELCOME BACK</span>
+
+                            <h2>Welcome</h2>
+
+                            <p>
+                                Here’s what’s happening with your vehicle rental system today.
+                            </p>
+
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            data-section="rentals"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-plus"></i>
+                            New Rental
+                        </button>
+
+                    </div>
+
+
+                    <div class="stats-grid">
+
+                        <article class="stat-card stat-blue">
+
+                            <div class="stat-card-top">
+                                <span class="stat-label">Total Vehicles</span>
+
+                                <div class="stat-icon">
+                                    <i class="fa-solid fa-car"></i>
+                                </div>
+                            </div>
+
+                            <div class="stat-value" id="totalVehicles">0</div>
+
+                            <div class="stat-change positive">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                Fleet overview
+                            </div>
+
+                            <span class="stat-watermark">
+                                <i class="fa-solid fa-car-side"></i>
+                            </span>
+
+                        </article>
+
+
+                        <article class="stat-card stat-green">
+
+                            <div class="stat-card-top">
+                                <span class="stat-label">Total Customers</span>
+
+                                <div class="stat-icon">
+                                    <i class="fa-solid fa-users"></i>
+                                </div>
+                            </div>
+
+                            <div class="stat-value" id="totalCustomers">0</div>
+
+                            <div class="stat-change positive">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                Registered customers
+                            </div>
+
+                            <span class="stat-watermark">
+                                <i class="fa-solid fa-user-group"></i>
+                            </span>
+
+                        </article>
+
+
+                        <article class="stat-card stat-amber">
+
+                            <div class="stat-card-top">
+                                <span class="stat-label">Active Rentals</span>
+
+                                <div class="stat-icon">
+                                    <i class="fa-solid fa-calendar-check"></i>
+                                </div>
+                            </div>
+
+                            <div class="stat-value" id="activeRentals">0</div>
+
+                            <div class="stat-change positive">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                Currently rented
+                            </div>
+
+                            <span class="stat-watermark">
+                                <i class="fa-solid fa-key"></i>
+                            </span>
+
+                        </article>
+
+
+                        <article class="stat-card stat-purple">
+
+                            <div class="stat-card-top">
+                                <span class="stat-label">Total Revenue</span>
+
+                                <div class="stat-icon">
+                                    <i class="fa-solid fa-indian-rupee-sign"></i>
+                                </div>
+                            </div>
+
+                            <div class="stat-value" id="totalRevenue">₹0</div>
+
+                            <div class="stat-change positive">
+                                <i class="fa-solid fa-arrow-trend-up"></i>
+                                Successful payments
+                            </div>
+
+                            <span class="stat-watermark">
+                                <i class="fa-solid fa-chart-column"></i>
+                            </span>
+
+                        </article>
+
+                    </div>
+
+
+                    <div class="dashboard-grid">
+
+                        <div class="panel">
+
+                            <div class="panel-header">
+                                <div>
+                                    <h3>Recent Rentals</h3>
+                                    <p>Latest rental activity</p>
+                                </div>
+
+                                <button
+                                    class="btn btn-ghost btn-sm"
+                                    data-section="rentals"
+                                    type="button"
+                                >
+                                    View all
+                                </button>
+                            </div>
+
+                            <div class="table-wrap">
+
+                                <table>
+
+                                    <thead>
+                                        <tr>
+                                            <th>Rental</th>
+                                            <th>Customer</th>
+                                            <th>Vehicle</th>
+                                            <th>Dates</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+
+                                    <tbody id="dashboardRentalsBody">
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                        </div>
+
+
+                        <div class="panel">
+
+                            <div class="panel-header">
+
+                                <div>
+                                    <h3>Fleet Status</h3>
+                                    <p>Current vehicle availability</p>
+                                </div>
+
+                                <button
+                                    class="btn btn-ghost btn-sm"
+                                    data-section="vehicles"
+                                    type="button"
+                                >
+                                    Manage
+                                </button>
+
+                            </div>
+
+                            <div class="fleet-status" id="fleetStatus">
+                            </div>
+
+                        </div>
+
+
+                        <div class="panel">
+
+                            <div class="panel-header">
+
+                                <div>
+                                    <h3>Pending Payments</h3>
+                                    <p>Rentals with an outstanding balance</p>
+                                </div>
+
+                                <button
+                                    class="btn btn-ghost btn-sm"
+                                    data-section="payments"
+                                    type="button"
+                                >
+                                    View all
+                                </button>
+
+                            </div>
+
+                            <div id="pendingPaymentsWidget">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- CUSTOMERS SECTION -->
+
+                <section id="customers" class="content-section">
+
+                    <div class="section-header">
+
+                        <div>
+                            <span class="eyebrow">CUSTOMER MANAGEMENT</span>
+                            <h2>Customers</h2>
+                            <p>Manage registered customers and their information.</p>
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addCustomerBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-plus"></i>
+                            Add Customer
+                        </button>
+
+                    </div>
+
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                            <input
+                                id="customerSearch"
+                                type="search"
+                                placeholder="Search customers..."
+                            >
+                        </div>
+
+                        <button
+                            class="btn btn-secondary"
+                            id="refreshCustomersBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Customer</th>
+                                        <th>Email</th>
+                                        <th>Phone</th>
+                                        
+                                        <th>Actions</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="customersTableBody">
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- VEHICLES SECTION -->
+
+                <section id="vehicles" class="content-section">
+
+                    <div class="section-header">
+
+                        <div>
+                            <span class="eyebrow">FLEET MANAGEMENT</span>
+                            <h2>Vehicles</h2>
+                            <p>Manage your rental fleet and vehicle availability.</p>
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addVehicleBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-plus"></i>
+                            Add Vehicle
+                        </button>
+
+                    </div>
+                    <div class="fleet-summary" id="fleetSummary"></div>
+
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+
+                            <input
+                                id="vehicleSearch"
+                                type="search"
+                                placeholder="Search vehicles..."
+                            >
+                        </div>
+
+                        <select id="vehicleStatusFilter" class="filter-select">
+                            <option value="">All Statuses</option>
+                            <option value="available">Available</option>
+                            <option value="rented">Rented</option>
+                            <option value="maintenance">Maintenance</option>
+                        </select>
+
+                        <button
+                            class="btn btn-secondary"
+                            id="refreshVehiclesBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Vehicle</th>
+                                        
+                                        <th>Type</th>
+                                    
+                                        <th>Daily Rate</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="vehiclesTableBody">
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- RENTALS SECTION -->
+
+                <section id="rentals" class="content-section">
+
+                    <div class="section-header">
+
+                        <div>
+                            <span class="eyebrow">RENTAL MANAGEMENT</span>
+                            <h2>Rentals</h2>
+                            <p>Create and manage vehicle rental agreements.</p>
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addRentalBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-plus"></i>
+                            New Rental
+                        </button>
+
+                    </div>
+
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+
+                            <input
+                                id="rentalSearch"
+                                type="search"
+                                placeholder="Search rentals..."
+                            >
+                        </div>
+
+                        <select id="rentalStatusFilter" class="filter-select">
+
+                            <option value="">All Statuses</option>
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="overdue">Overdue</option>
+
+                        </select>
+
+                        <button
+                            class="btn btn-secondary"
+                            id="refreshRentalsBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Customer</th>
+                                        <th>Vehicle</th>
+                                        <th>Pickup</th>
+                                        <th>Drop-off</th>
+                                        <th>Actual Return</th>
+                                        <th>Duration</th>
+                                        <th>Amount</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="rentalsTableBody">
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- PAYMENTS SECTION -->
+
+                <section id="payments" class="content-section">
+
+                    <div class="section-header">
+
+                        <div>
+                            <span class="eyebrow">PAYMENT MANAGEMENT</span>
+                            <h2>Payments</h2>
+                            <p>Track rental payments and payment status.</p>
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            id="addPaymentBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-plus"></i>
+                            Record Payment
+                        </button>
+
+                    </div>
+
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+
+                            <input
+                                id="paymentSearch"
+                                type="search"
+                                placeholder="Search payments..."
+                            >
+                        </div>
+
+                        <select id="paymentStatusFilter" class="filter-select">
+
+                            <option value="">All Statuses</option>
+                            <option value="success">Success</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+
+                        </select>
+
+                        <button
+                            class="btn btn-secondary"
+                            id="refreshPaymentsBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Rental</th>
+                                        <th>Customer</th>
+                                        <th>Amount</th>
+                                        <th>Payment Date</th>
+                                        <th>Method</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="paymentsTableBody">
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+                <!-- TRANSACTIONS SECTION -->
+
+                <section id="transactions" class="content-section">
+
+                    <div class="section-header">
+
+                        <div>
+                            <span class="eyebrow">FINANCIAL ACTIVITY</span>
+                            <h2>Transactions</h2>
+                            <p>View all payment transaction records.</p>
+                        </div>
+
+                        <button
+                            class="btn btn-secondary"
+                            id="refreshTransactionsBtn"
+                            type="button"
+                        >
+                            <i class="fa-solid fa-rotate"></i>
+                            Refresh
+                        </button>
+
+                    </div>
+
+
+                    <div class="toolbar">
+
+                        <div class="search-box">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+
+                            <input
+                                id="transactionSearch"
+                                type="search"
+                                placeholder="Search transactions..."
+                            >
+                        </div>
+
+                    </div>
+
+
+                    <div class="panel">
+
+                        <div class="table-wrap">
+
+                            <table>
+
+                                <thead>
+
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Payment ID</th>
+                                        <th>Rental ID</th>
+                                        <th>Amount</th>
+                                        <th>Method</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                    </tr>
+
+                                </thead>
+
+                                <tbody id="transactionsTableBody">
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </section>
+
+
+            </main>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         CUSTOMER MODAL
+         ========================================================= -->
+
+    <div class="modal-overlay" id="customerModal" aria-hidden="true">
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="customerModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+                    <h2 id="customerModalTitle">Add Customer</h2>
+                    <p>Add a new customer to the system.</p>
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="customerModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="customerForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="customerName">Full Name</label>
+
+                        <input
+                            type="text"
+                            id="customerName"
+                            name="name"
+                            placeholder="John Doe"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="customerEmail">Email</label>
+
+                        <input
+                            type="email"
+                            id="customerEmail"
+                            name="email"
+                            placeholder="john@example.com"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="customerPhone">Phone</label>
+
+                        <input
+                            type="tel"
+                            id="customerPhone"
+                            name="phone"
+                            placeholder="+91 9876543210"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <div class="form-group full-width" id="customerPasswordGroup">
+
+    <label for="customerPassword">Initial Password</label>
+
+    <input
+        type="password"
+        id="customerPassword"
+        name="password"
+        placeholder="Enter initial password"
+        minlength="6"
+        maxlength="72"
+        autocomplete="new-password"
+    >
+
+</div>
+                    </div>
+
+                    </div>
+
+
+                  
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="customerModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Add Customer
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         VEHICLE MODAL
+         ========================================================= -->
+
+    <div class="modal-overlay" id="vehicleModal" aria-hidden="true">
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="vehicleModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+                    <h2 id="vehicleModalTitle">Add Vehicle</h2>
+                    <p>Add a new vehicle to the fleet.</p>
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="vehicleModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="vehicleForm">
+
+                <div class="form-grid">
+
+                   
+
+
+                    <div class="form-group">
+
+                        <label for="vehicleModel">Model Name</label>
+
+                        <input
+                            type="text"
+                            id="vehicleModel"
+                            name="model"
+                            placeholder="Swift, Innova, etc."
+                            required
+                        >
+
+                    </div>
+
+
+                   
+
+
+                    <div class="form-group">
+
+                        <label for="vehicleType">Vehicle Type</label>
+
+                        <select
+                            id="vehicleType"
+                            name="type"
+                            required
+                        >
+
+                            <option value="">Select type</option>
+                            <option value="Bike">Bike</option>
+<option value="Scooter">Scooter</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="dailyRate">Daily Rate (₹)</label>
+
+                        <input
+                            type="number"
+                            id="dailyRate"
+                            name="daily_rate"
+                            placeholder="2000"
+                            min="0"
+                            step="100"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="vehicleStatus">Status</label>
+
+                        <select
+                            id="vehicleStatus"
+                            name="availability_status"
+                            required
+                        >
+
+                            <option value="available">Available</option>
+                            <option value="rented">Rented</option>
+                            <option value="maintenance">Maintenance</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="vehicleModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Add Vehicle
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         RENTAL MODAL
+         ========================================================= -->
+
+    <div class="modal-overlay" id="rentalModal" aria-hidden="true">
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rentalModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+                    <h2 id="rentalModalTitle">Create Rental</h2>
+                    <p>Create a new rental agreement.</p>
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="rentalModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="rentalForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="rentalCustomer">Customer</label>
+
+                        <select
+                            id="rentalCustomer"
+                            name="customer_id"
+                            required
+                        >
+
+                            <option value="">Select customer</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="rentalVehicle">Vehicle</label>
+
+                        <select
+                            id="rentalVehicle"
+                            name="vehicle_id"
+                            required
+                        >
+
+                            <option value="">Select vehicle</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="rentalDate">Rental Date</label>
+
+                        <input
+                            type="date"
+                            id="rentalDate"
+                            name="rental_date"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="expectedReturnDate">Expected Return Date</label>
+
+                        <input
+                            type="date"
+                            id="expectedReturnDate"
+                            name="expected_return_date"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group full-width">
+
+                        <label for="rentalStatus">Rental Status</label>
+
+                        <select
+                            id="rentalStatus"
+                            name="status"
+                            required
+                        >
+
+                            <option value="active">Active</option>
+                            <option value="completed">Completed</option>
+                            <option value="overdue">Overdue</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div
+                        class="form-group full-width"
+                        id="rentalPriceSummaryGroup"
+                        style="display: none;"
+                    >
+
+                        <div
+                            class="price-calculator-card"
+                            style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 8px; padding: 14px; margin-top: 4px;"
+                        >
+
+                            <div
+                                style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem;"
+                            >
+
+                                <span style="color: #94a3b8;">
+                                    <i class="fa-solid fa-tag"></i>
+                                    Daily Rate:
+                                </span>
+
+                                <strong
+                                    id="summaryDailyRate"
+                                    style="color: #f8fafc;"
+                                >
+                                    $0.00 / day
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                style="display: flex; justify-content: space-between; margin-bottom: 6px; font-size: 0.9rem;"
+                            >
+
+                                <span style="color: #94a3b8;">
+                                    <i class="fa-solid fa-clock"></i>
+                                    Duration:
+                                </span>
+
+                                <strong
+                                    id="summaryDuration"
+                                    style="color: #f8fafc;"
+                                >
+                                    0 Days
+                                </strong>
+
+                            </div>
+
+
+                            <div
+                                style="display: flex; justify-content: space-between; padding-top: 8px; border-top: 1px solid rgba(16, 185, 129, 0.2); font-size: 1.05rem;"
+                            >
+
+                                <span
+                                    style="color: #e2e8f0; font-weight: 600;"
+                                >
+                                    <i class="fa-solid fa-receipt"></i>
+                                    Estimated Total:
+                                </span>
+
+                                <strong
+                                    id="summaryTotal"
+                                    style="color: #10b981; font-weight: 700;"
+                                >
+                                    $0.00
+                                </strong>
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="rentalModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                    >
+                        Create Rental
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <!-- =========================================================
+         PAYMENT MODAL
+         ========================================================= -->
+
+    <div class="modal-overlay" id="paymentModal" aria-hidden="true">
+
+        <div
+            class="modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="paymentModalTitle"
+        >
+
+            <div class="modal-header">
+
+                <div>
+                    <h2 id="paymentModalTitle">Record Payment</h2>
+                    <p id="paymentModalSubtitle">
+                        Add a payment against a rental.
+                    </p>
+                </div>
+
+                <button
+                    class="modal-close"
+                    data-close-modal="paymentModal"
+                    type="button"
+                    aria-label="Close"
+                >
+                    &times;
+                </button>
+
+            </div>
+
+
+            <form id="paymentForm">
+
+                <div class="form-grid">
+
+                    <div class="form-group">
+
+                        <label for="paymentRental">Rental</label>
+
+                        <select
+                            id="paymentRental"
+                            name="rental_id"
+                            required
+                        >
+
+                            <option value="">Select rental</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="paymentAmount">Amount (₹)</label>
+
+                        <input
+                            type="number"
+                            id="paymentAmount"
+                            name="amount"
+                            placeholder="0.00"
+                            min="0"
+                            step="0.01"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="paymentDate">Payment Date</label>
+
+                        <input
+                            type="date"
+                            id="paymentDate"
+                            name="payment_date"
+                            required
+                        >
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="paymentMethod">Payment Method</label>
+
+                        <select
+                            id="paymentMethod"
+                            name="payment_method"
+                            required
+                        >
+
+                            <option value="">Select method</option>
+                            <option value="cash">Cash</option>
+                            <option value="card">Card</option>
+                            <option value="upi">UPI</option>
+                            <option value="net_banking">Net Banking</option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="form-group full-width">
+
+                        <label for="paymentStatus">Payment Status</label>
+
+                        <select
+                            id="paymentStatus"
+                            name="status"
+                            required
+                        >
+
+                            <option value="success">Success</option>
+                            <option value="pending">Pending</option>
+                            <option value="failed">Failed</option>
+
+                        </select>
+
+                    </div>
+
+                </div>
+
+
+                <div class="modal-footer">
+
+                    <button
+                        type="button"
+                        class="btn btn-secondary"
+                        data-close-modal="paymentModal"
+                    >
+                        Cancel
+                    </button>
+
+                    <button
+                        type="submit"
+                        class="btn btn-primary"
+                        id="paymentSubmitBtn"
+                    >
+                        Record Payment
+                    </button>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    <script src="js/script.js"></script>
+
+</body>
+
+</html>
